@@ -33,41 +33,27 @@ namespace viscom {
 
         virtual bool KeyboardCallback(int key, int scancode, int action, int mods) override;
 
+
+        // ###################### https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c ##########
+        inline bool exists_test3(const std::string& name) {
+            struct stat buffer;
+            return (stat(name.c_str(), &buffer) == 0);
+        }
+        // ##########################################################################################################################################
     private:
-        /** Holds the shader program for drawing the background. */
-        std::shared_ptr<GPUProgram> backgroundProgram_;
-        /** Holds the location of the MVP matrix. */
-        GLint backgroundMVPLoc_ = -1;
-
-        /** Holds the shader program for drawing the foreground triangle. */
-        std::shared_ptr<GPUProgram> triangleProgram_;
-        /** Holds the location of the MVP matrix. */
-        GLint triangleMVPLoc_ = -1;
-
-        /** Holds the shader program for drawing the foreground teapot. */
-        std::shared_ptr<GPUProgram> teapotProgram_;
-        /** Holds the location of the model matrix. */
-        GLint teapotModelMLoc_ = -1;
-        /** Holds the location of the normal matrix. */
-        GLint teapotNormalMLoc_ = -1;
-        /** Holds the location of the VP matrix. */
-        GLint teapotVPLoc_ = -1;
-
-        /** Holds the number of vertices of the background grid. */
-        unsigned int numBackgroundVertices_ = 0;
-        /** Holds the vertex buffer for the background grid. */
-        GLuint vboBackgroundGrid_ = 0;
-        /** Holds the vertex array object for the background grid. */
-        GLuint vaoBackgroundGrid_ = 0;
-
-        /** Holds the teapot mesh. */
-        std::shared_ptr<Mesh> teapotMesh_;
-        /** Holds the teapot mesh renderable. */
-        std::unique_ptr<MeshRenderable> teapotRenderable_;
-
-        glm::mat4 triangleModelMatrix_;
-        glm::mat4 teapotModelMatrix_;
-        glm::vec3 camPos_;
-        glm::vec3 camRot_;
+        /** Holds the index of the current displayed slide */
+        int current_slide_;
+        /** Holds the number of slides */
+        int numberOfSlides_;
+        /** The dummy vertex array object needed for rendering. */
+        GLuint dummyVAO_ = 0;
+        /** The vector holds all available slide textures */
+        std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
+        /** The GPU program used for drawing. */
+        std::shared_ptr<GPUProgram> slideProgram_;
+        /** Texture location */
+        GLint slideTextureLoc_;
+        /** iterates over resource/slides folder and loads textures */
+        void loadSlides();
     };
 }
