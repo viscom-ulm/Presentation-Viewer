@@ -102,7 +102,7 @@ namespace viscom {
     void ApplicationNodeImplementation::loadSlides()
     {
         int slideNumber = 1;
-        while (exists_test3("../resources/slides/Folie" + std::to_string(slideNumber) + ".PNG"))
+        while (exists_test3("resources/slides/Folie" + std::to_string(slideNumber) + ".PNG"))
         {
             auto texture = GetTextureManager().GetResource("/slides/Folie" + std::to_string(slideNumber) + ".PNG");
             if (!texture) break;

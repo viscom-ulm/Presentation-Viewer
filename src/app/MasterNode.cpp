@@ -20,19 +20,26 @@ namespace viscom {
 
     void MasterNode::Draw2D(FrameBuffer& fbo)
     {
-        fbo.DrawToFBO([]() {
-            ImGui::ShowTestWindow();
-
-            ImGui::SetNextWindowPos(ImVec2(700, 60), ImGuiSetCond_FirstUseEver);
-            ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiSetCond_FirstUseEver);
-            if (ImGui::Begin("MasterTestWindow", nullptr, ImGuiWindowFlags_ShowBorders))
-            {
-                ImGui::Text("Hello World on Master!");
-            }
-            ImGui::End();
-        });
-
         ApplicationNodeImplementation::Draw2D(fbo);
     }
 
+#ifdef VISCOM_USE_SGCT
+    void MasterNode::EncodeData()
+    {
+        ApplicationNodeImplementation::EncodeData();
+        sgct::SharedData::instance()->writeObj(&sharedData_);
+    }
+
+    void MasterNode::DecodeData()
+    {
+        ApplicationNodeImplementation::DecodeData();
+        sgct::SharedData::instance()->readObj(&sharedData_);
+    }
+
+    void MasterNode::PreSync()
+    {
+        ApplicationNodeImplementation::PreSync();
+        sharedData_.setVal(getCurrentSlide());
+    }
+#endif
 }

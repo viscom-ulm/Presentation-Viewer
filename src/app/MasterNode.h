@@ -21,7 +21,16 @@ namespace viscom {
         explicit MasterNode(ApplicationNodeInternal* appNode);
         virtual ~MasterNode() override;
 
+#ifdef VISCOM_USE_SGCT
+        virtual void EncodeData() override;
+        virtual void DecodeData() override;
+        virtual void PreSync() override;
+#endif
         void Draw2D(FrameBuffer& fbo) override;
-
+    private:
+#ifdef VISCOM_USE_SGCT
+        /** Holds the data the master shares. */
+        sgct::SharedObject<int> sharedData_;
+#endif
     };
 }

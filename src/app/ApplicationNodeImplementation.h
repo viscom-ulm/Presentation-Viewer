@@ -30,7 +30,8 @@ namespace viscom {
         virtual void ClearBuffer(FrameBuffer& fbo) override;
         virtual void DrawFrame(FrameBuffer& fbo) override;
         virtual void CleanUp() override;
-
+        void setCurrentSlide(int slide) { current_slide_ = slide; };
+        int getCurrentSlide() const { return current_slide_; }
         virtual bool KeyboardCallback(int key, int scancode, int action, int mods) override;
 
 
