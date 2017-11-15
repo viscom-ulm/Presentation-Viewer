@@ -45,15 +45,15 @@ namespace viscom {
         int current_slide_;
         /** Holds the number of slides */
         int numberOfSlides_;
-        /** The dummy vertex array object needed for rendering. */
-        GLuint dummyVAO_ = 0;
         /** The vector holds all available slide textures */
         std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
         /** The GPU program used for drawing. */
-        std::shared_ptr<GPUProgram> slideProgram_;
+        const GPUProgram *slideProgram_;
         /** Texture location */
         GLint slideTextureLoc_;
         /** iterates over resource/slides folder and loads textures */
         void loadSlides();
+        /** Holds the geometry which gets textured with a slide*/
+        std::shared_ptr<FullscreenQuad> quad_;
     };
 }

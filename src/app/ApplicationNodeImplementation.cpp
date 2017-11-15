@@ -28,12 +28,10 @@ namespace viscom {
 
     void ApplicationNodeImplementation::InitOpenGL()
     {
-        glGenVertexArrays(1, &dummyVAO_);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-        slideProgram_ = GetGPUProgramManager().GetResource("slides", std::initializer_list<std::string>{ "slide.vert","slide.frag" });
+        quad_ = std::make_shared<FullscreenQuad>("slide.frag", GetApplication());
+        slideProgram_ = quad_->GetGPUProgram();
         slideTextureLoc_ = slideProgram_->getUniformLocation("slide");
-
+        
         loadSlides();
     }
 
@@ -52,18 +50,18 @@ namespace viscom {
     void ApplicationNodeImplementation::DrawFrame(FrameBuffer& fbo)
     {
         fbo.DrawToFBO([this]() {
-            {
-                glUseProgram(slideProgram_->getProgramId());
-                glDisable(GL_DEPTH_TEST);
-                glDepthMask(GL_FALSE);
-                glActiveTexture(GL_TEXTURE0 + 0);
-                glBindTexture(GL_TEXTURE_2D, texture_slides_[current_slide_]->getTextureId());
-                glUniform1i(slideTextureLoc_, 0);
-                glBindVertexArray(dummyVAO_);
-                glDrawArrays(GL_TRIANGLES, 0, 3);
-                glDepthMask(GL_TRUE);
-                glEnable(GL_DEPTH_TEST);
-            }
+            auto windowId = GetApplication()->GetEngine()->getCurrentWindowPtr()->getId();
+            auto viewportPosition = -GetApplication()->GetViewportScreen(windowId).position_;
+            auto viewportSize = GetApplication()->GetViewportScreen(windowId).size_;
+            glViewport(viewportPosition.x, viewportPosition.y, viewportSize.x, viewportSize.y);
+            glUseProgram(slideProgram_->getProgramId());
+
+          
+            glActiveTexture(GL_TEXTURE0 + 0);
+            glBindTexture(GL_TEXTURE_2D, texture_slides_[current_slide_]->getTextureId());
+            glUniform1i(slideTextureLoc_, 0);
+            quad_->Draw();
+            
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
             glUseProgram(0);
@@ -73,8 +71,7 @@ namespace viscom {
 
     void ApplicationNodeImplementation::CleanUp()
     {
-        if (dummyVAO_ != 0) glDeleteVertexArrays(1, &dummyVAO_);
-        dummyVAO_ = 0;
+
     }
 
     bool ApplicationNodeImplementation::KeyboardCallback(int key, int scancode, int action, int mods)
