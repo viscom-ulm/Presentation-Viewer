@@ -28,12 +28,6 @@ namespace viscom {
 
     SlaveNode::~SlaveNode() = default;
 #ifdef VISCOM_USE_SGCT
-    void SlaveNode::EncodeData()
-    {
-        SlaveNodeInternal::EncodeData();
-        sgct::SharedData::instance()->writeObj(&sharedData_);
-    }
-
     void SlaveNode::DecodeData()
     {
         SlaveNodeInternal::DecodeData();
@@ -43,7 +37,7 @@ namespace viscom {
     void SlaveNode::UpdateSyncedInfo()
     {
         SlaveNodeInternal::UpdateSyncedInfo();
-        setCurrentSlide(static_cast<int>(sharedData_.getVal()));
+		setCurrentTexture(static_cast<std::shared_ptr<Texture>>(sharedData_.getVal()));
     }
 #endif
 }

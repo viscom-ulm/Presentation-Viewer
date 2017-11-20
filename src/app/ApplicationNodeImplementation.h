@@ -30,30 +30,18 @@ namespace viscom {
         virtual void ClearBuffer(FrameBuffer& fbo) override;
         virtual void DrawFrame(FrameBuffer& fbo) override;
         virtual void CleanUp() override;
-        void setCurrentSlide(int slide) { current_slide_ = slide; };
-        int getCurrentSlide() const { return current_slide_; }
-        virtual bool KeyboardCallback(int key, int scancode, int action, int mods) override;
 
+		void setCurrentTexture(std::shared_ptr<Texture> tex) { texture_ = tex; hasTexture_ = true; };
+        
 
-        // ###################### https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c ##########
-        inline bool exists_test3(const std::string& name) {
-            struct stat buffer;
-            return (stat(name.c_str(), &buffer) == 0);
-        }
-        // ##########################################################################################################################################
-    private:
-        /** Holds the index of the current displayed slide */
-        int current_slide_;
-        /** Holds the number of slides */
-        int numberOfSlides_;
-        /** The vector holds all available slide textures */
-        std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
+	private:
+		bool hasTexture_;
         /** The GPU program used for drawing. */
         const GPUProgram *slideProgram_;
         /** Texture location */
         GLint slideTextureLoc_;
-        /** iterates over resource/slides folder and loads textures */
-        void loadSlides();
+        /** Holds the current texture to be rendered*/
+		std::shared_ptr<Texture> texture_;
         /** Holds the geometry which gets textured with a slide*/
         std::shared_ptr<FullscreenQuad> quad_;
     };

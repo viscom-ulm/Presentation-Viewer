@@ -22,12 +22,11 @@ namespace viscom {
 
 #ifdef VISCOM_USE_SGCT
         virtual void UpdateSyncedInfo() override;
-        virtual void EncodeData() override;
         virtual void DecodeData() override;
 
     private:
         /** Holds the data shared by the master. */
-        sgct::SharedObject<int> sharedData_;
+        sgct::SharedObject<std::shared_ptr<Texture>> sharedData_;
 #endif
     };
 }
