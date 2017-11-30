@@ -16,6 +16,11 @@ namespace viscom {
     {
     }
 
+    void SlaveNode::InitOpenGL()
+    {
+        SlaveNodeInternal::InitOpenGL();
+    }
+
     void SlaveNode::Draw2D(FrameBuffer& fbo)
     {
 #ifdef VISCOM_CLIENTGUI
@@ -26,18 +31,35 @@ namespace viscom {
         SlaveNodeInternal::Draw2D(fbo);
     }
 
+    void SlaveNode::addTexture(int index, TextureInfo info, std::vector<float> data)
+    {
+        if (data.size() <= 0) return;
+        if(textures_.find(index) == textures_.end())
+        {
+            auto tex = std::make_shared<Texture>(info, data, GetApplication());
+            textures_[index] = std::move(tex);
+        }
+    }
+
     SlaveNode::~SlaveNode() = default;
 #ifdef VISCOM_USE_SGCT
     void SlaveNode::DecodeData()
     {
         SlaveNodeInternal::DecodeData();
+        sgct::SharedData::instance()->readInt32(&sharedIndex_);
         sgct::SharedData::instance()->readObj(&sharedData_);
+        sgct::SharedData::instance()->readVector(&sharedVector_);
     }
 
     void SlaveNode::UpdateSyncedInfo()
     {
         SlaveNodeInternal::UpdateSyncedInfo();
-		setCurrentTexture(static_cast<std::shared_ptr<Texture>>(sharedData_.getVal()));
+        const auto index = sharedIndex_.getVal();
+        addTexture(index, sharedData_.getVal(), sharedVector_.getVal());
+        if(textures_.find(index) != textures_.end())
+        {
+            setCurrentTexture(textures_[index]);
+        }
     }
 #endif
 }

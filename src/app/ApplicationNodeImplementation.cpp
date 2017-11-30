@@ -20,7 +20,7 @@
 namespace viscom {
 
     ApplicationNodeImplementation::ApplicationNodeImplementation(ApplicationNodeInternal* appNode) :
-		ApplicationNodeBase{ appNode }, hasTexture_{false}
+		ApplicationNodeBase{ appNode }
     {
     }
 
@@ -47,26 +47,25 @@ namespace viscom {
 
     void ApplicationNodeImplementation::DrawFrame(FrameBuffer& fbo)
     {
-		if (hasTexture_) {
-			fbo.DrawToFBO([this]() {
-				auto windowId = GetApplication()->GetEngine()->getCurrentWindowPtr()->getId();
-				auto viewportPosition = -GetApplication()->GetViewportScreen(windowId).position_;
-				auto viewportSize = GetApplication()->GetViewportScreen(windowId).size_;
-				glViewport(viewportPosition.x, viewportPosition.y, viewportSize.x, viewportSize.y);
-				glUseProgram(slideProgram_->getProgramId());
+		
+        fbo.DrawToFBO([this]() {
+	        auto windowId = GetApplication()->GetEngine()->getCurrentWindowPtr()->getId();
+	        auto viewportPosition = -GetApplication()->GetViewportScreen(windowId).position_;
+	        auto viewportSize = GetApplication()->GetViewportScreen(windowId).size_;
+	        glViewport(viewportPosition.x, viewportPosition.y, viewportSize.x, viewportSize.y);
+	        glUseProgram(slideProgram_->getProgramId());
+                if (texture_.get()) {
+                    glActiveTexture(GL_TEXTURE0 + 0);
+                    glBindTexture(GL_TEXTURE_2D, texture_->getTextureId());
+                    glUniform1i(slideTextureLoc_, 0);
+                    quad_->Draw();
+                }
+	        glBindBuffer(GL_ARRAY_BUFFER, 0);
+	        glBindVertexArray(0);
+	        glUseProgram(0);
 
+        });
 
-				glActiveTexture(GL_TEXTURE0 + 0);
-				glBindTexture(GL_TEXTURE_2D, texture_->getTextureId());
-				glUniform1i(slideTextureLoc_, 0);
-				quad_->Draw();
-
-				glBindBuffer(GL_ARRAY_BUFFER, 0);
-				glBindVertexArray(0);
-				glUseProgram(0);
-
-			});
-		}
     }
 
     void ApplicationNodeImplementation::CleanUp()

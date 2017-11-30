@@ -75,13 +75,16 @@ namespace viscom {
     void MasterNode::EncodeData()
     {
         ApplicationNodeImplementation::EncodeData();
+        sgct::SharedData::instance()->writeInt32(&sharedIndex_);
         sgct::SharedData::instance()->writeObj(&sharedData_);
+        sgct::SharedData::instance()->writeVector(&sharedVector_);
     }
 
     void MasterNode::PreSync()
     {
         ApplicationNodeImplementation::PreSync();
-        sharedData_.setVal(getCurrentSlide());
+        sharedData_.setVal(getCurrentSlide()->getInfo());
+        sharedVector_.setVal(getCurrentSlide()->getImageData());
     }
 #endif
 }

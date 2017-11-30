@@ -20,20 +20,20 @@ namespace viscom {
     public:
         explicit MasterNode(ApplicationNodeInternal* appNode);
         virtual ~MasterNode() override;
-		virtual void InitOpenGL() override;
-		virtual void Draw2D(FrameBuffer& fbo) override;
-		virtual bool KeyboardCallback(int key, int scancode, int action, int mods) override;
+        virtual void InitOpenGL() override;
+        virtual void Draw2D(FrameBuffer& fbo) override;
+        virtual bool KeyboardCallback(int key, int scancode, int action, int mods) override;
 
-		// ###################### https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c ##########
-		inline bool exists_test3(const std::string& name) {
-			struct stat buffer;
-			return (stat(name.c_str(), &buffer) == 0);
-		}
-		// ##########################################################################################################################################
+        // ###################### https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c ##########
+        inline bool exists_test3(const std::string& name) {
+	        struct stat buffer;
+	        return (stat(name.c_str(), &buffer) == 0);
+        }
+        // ##########################################################################################################################################
 
-		/** iterates over resource/slides folder and loads textures */
-		void loadSlides();
-		std::shared_ptr<Texture> getCurrentSlide() const { return texture_slides_[current_slide_]; }
+        /** iterates over resource/slides folder and loads textures */
+        void loadSlides();
+        std::shared_ptr<Texture> getCurrentSlide() const { return texture_slides_[current_slide_]; }
 		
 #ifdef VISCOM_USE_SGCT
         virtual void EncodeData() override;
@@ -42,7 +42,9 @@ namespace viscom {
     private:
 #ifdef VISCOM_USE_SGCT
         /** Holds the data the master shares. */
-        sgct::SharedObject<std::shared_ptr<Texture>> sharedData_;
+        sgct::SharedObject<TextureInfo> sharedData_;
+        sgct::SharedVector<float> sharedVector_;
+        sgct::SharedInt32 sharedIndex_;
 #endif
 		/** Holds the index of the current displayed slide */
 		int current_slide_;

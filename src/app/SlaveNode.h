@@ -17,8 +17,9 @@ namespace viscom {
     public:
         explicit SlaveNode(ApplicationNodeInternal* appNode);
         virtual ~SlaveNode() override;
-
+        virtual void InitOpenGL() override;
         void Draw2D(FrameBuffer& fbo) override;
+        void addTexture(int index, TextureInfo info, std::vector<float> data);
 
 #ifdef VISCOM_USE_SGCT
         virtual void UpdateSyncedInfo() override;
@@ -26,7 +27,10 @@ namespace viscom {
 
     private:
         /** Holds the data shared by the master. */
-        sgct::SharedObject<std::shared_ptr<Texture>> sharedData_;
+        sgct::SharedObject<TextureInfo> sharedData_;
+        sgct::SharedVector<float> sharedVector_;
+        sgct::SharedInt32 sharedIndex_;
+        std::map<int, std::shared_ptr<Texture>> textures_;
 #endif
     };
 }
