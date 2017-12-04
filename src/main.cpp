@@ -14,7 +14,10 @@
 #include "core/g3log/filesink.h"
 #include "core/ApplicationNodeInternal.h"
 #include "core/initialize.h"
-
+inline bool exists_test3(const std::string& name) {
+    struct stat buffer;
+    return (stat(name.c_str(), &buffer) == 0);
+}
 
 int main(int argc, char** argv)
 {
@@ -32,11 +35,9 @@ int main(int argc, char** argv)
     initializeLogging(worker.get());
 
     LOG(INFO) << "Log created.";
-
     viscom::FWConfiguration config;
     if (argc > 1) config = viscom::LoadConfiguration(argv[1]);
     else config = viscom::LoadConfiguration("framework.cfg");
-
     auto appNode = Application_Init(config);
 
     // Main loop

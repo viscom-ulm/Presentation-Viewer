@@ -7,17 +7,19 @@
  */
 
 #include "SlaveNode.h"
+
 #include <imgui.h>
 
 namespace viscom {
 
     SlaveNode::SlaveNode(ApplicationNodeInternal* appNode) :
-        SlaveNodeInternal{ appNode }
+        SlaveNodeInternal{appNode}, current_slide_(0), number_of_slides_(0), allTexturesLoaded_(false)
     {
     }
 
     void SlaveNode::InitOpenGL()
     {
+        LOG(INFO) << "This is client: " << sgct_core::ClusterManager::instance()->getThisNodeId();
         SlaveNodeInternal::InitOpenGL();
     }
 
@@ -31,14 +33,21 @@ namespace viscom {
         SlaveNodeInternal::Draw2D(fbo);
     }
 
-    void SlaveNode::addTexture(int index, TextureInfo info, std::vector<float> data)
+    void SlaveNode::addTexture(int index, TextureInfo info, std::vector<unsigned char> data)
     {
         if (data.size() <= 0) return;
-        if(textures_.find(index) == textures_.end())
+        if(!isSynced(index))
         {
-            auto tex = std::make_shared<Texture>(info, data, GetApplication());
-            textures_[index] = std::move(tex);
+            const auto tex = std::make_shared<Texture>(info, data, GetApplication());
+            textures_[index] = tex;
+            LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId();
+            setCurrentTexture(tex);
         }
+        ClientState state;
+        state.clientId = sgct_core::ClusterManager::instance()->getThisNodeId();
+        state.textureIndex = index;
+        state.synced = true;
+        sgct::Engine::instance()->transferDataToNode(&state, sizeof(ClientState), 0, 0);
     }
 
     SlaveNode::~SlaveNode() = default;
@@ -46,7 +55,9 @@ namespace viscom {
     void SlaveNode::DecodeData()
     {
         SlaveNodeInternal::DecodeData();
+        //sgct::SharedData::instance()->readBool(&sharedInit_);
         sgct::SharedData::instance()->readInt32(&sharedIndex_);
+        sgct::SharedData::instance()->readInt32(&sharedNumberOfSlides_);
         sgct::SharedData::instance()->readObj(&sharedData_);
         sgct::SharedData::instance()->readVector(&sharedVector_);
     }
@@ -54,11 +65,19 @@ namespace viscom {
     void SlaveNode::UpdateSyncedInfo()
     {
         SlaveNodeInternal::UpdateSyncedInfo();
-        const auto index = sharedIndex_.getVal();
-        addTexture(index, sharedData_.getVal(), sharedVector_.getVal());
-        if(textures_.find(index) != textures_.end())
+        current_slide_= sharedIndex_.getVal();
+        number_of_slides_ = sharedNumberOfSlides_.getVal();
+        if (current_slide_ < number_of_slides_) {
+            addTexture(sharedIndex_.getVal(), sharedData_.getVal(), sharedVector_.getVal());
+        }
+        else if(current_slide_ == number_of_slides_ && !allTexturesLoaded_)
         {
-            setCurrentTexture(textures_[index]);
+            allTexturesLoaded_ = true;
+        }
+
+        if(allTexturesLoaded_)
+        {
+            setCurrentTexture(textures_[current_slide_]);
         }
     }
 #endif
