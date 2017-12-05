@@ -16,10 +16,20 @@
 namespace viscom {
     struct ClientState
     {
-        ClientState() : clientId(-1), textureIndex(-1), synced(false){}
+        ClientState() : clientId(-1), textureIndex(-1){}
         int clientId;
         int textureIndex;
-        bool synced;
+    };
+
+    struct MasterMessage
+    {
+        MasterMessage() : hasData(false), numberOfSlide(0), data(nullptr), index(-1), descriptor( 0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE , 0, 0, 0 ){}
+        MasterMessage(bool hd, int nos, unsigned char* d, int i, TextureDescriptor des) : hasData(hd), numberOfSlide(nos), data(d), index(i), descriptor(des){}
+        bool hasData;
+        int numberOfSlide;
+        unsigned char* data;
+        int index;
+        TextureDescriptor descriptor;
     };
 
     class MasterNode final : public ApplicationNodeImplementation
@@ -40,34 +50,22 @@ namespace viscom {
 
         /** iterates over resource/slides folder and loads textures */
         void loadSlides();
-        bool sync(int index);
         std::shared_ptr<Texture> getCurrentSlide() const { return texture_slides_[current_slide_]; }
 		
 #ifdef VISCOM_USE_SGCT
         virtual void EncodeData() override;
         virtual void PreSync() override;
-        //virtual void DecodeData() override;
 #endif
     private:
 #ifdef VISCOM_USE_SGCT
-        /** Holds the data the master shares. */
-        sgct::SharedObject<TextureInfo> sharedData_;
-        sgct::SharedVector<unsigned char> sharedVector_;
         sgct::SharedInt32 sharedIndex_;
-        sgct::SharedInt32 sharedNumberOfSlides_;
-        //sgct::SharedInt32 sharedClientID_;
-        //sgct::SharedBool sharedInit_;
 #endif
-		/** Holds the index of the current displayed slide */
-		int current_slide_;
-		/** Holds the number of slides */
-		int numberOfSlides_;
-		/** The vector holds all available slide textures */
-		std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
-        /* Holds if there is on going initiation. */
-        bool init_;
-        /* Holds state of clients. */
-        std::vector<std::vector<bool>> clientStates_;
-        std::vector<std::pair<bool,bool>> acknowledged_;
+	/** Holds the index of the current displayed slide */
+	int current_slide_;
+	/** Holds the number of slides */
+	int numberOfSlides_;
+	/** The vector holds all available slide textures */
+	std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
+
     };
 }

@@ -13,7 +13,7 @@
 namespace viscom {
 
     SlaveNode::SlaveNode(ApplicationNodeInternal* appNode) :
-        SlaveNodeInternal{appNode}, current_slide_(0), number_of_slides_(0), allTexturesLoaded_(false)
+        SlaveNodeInternal{appNode}, current_slide_(0), number_of_slides_(-1)
     {
     }
 
@@ -33,12 +33,12 @@ namespace viscom {
         SlaveNodeInternal::Draw2D(fbo);
     }
 
-    void SlaveNode::addTexture(int index, TextureInfo info, std::vector<unsigned char> data)
+    void SlaveNode::addTexture(int index, TextureDescriptor descriptor, unsigned char* data)
     {
-        if (data.size() <= 0) return;
+        if (!data) return;
         if(!isSynced(index))
         {
-            const auto tex = std::make_shared<Texture>(info, data, GetApplication());
+            const auto tex = std::make_shared<Texture>(descriptor, data, GetApplication());
             textures_[index] = tex;
             LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId();
             setCurrentTexture(tex);
@@ -46,7 +46,6 @@ namespace viscom {
         ClientState state;
         state.clientId = sgct_core::ClusterManager::instance()->getThisNodeId();
         state.textureIndex = index;
-        state.synced = true;
         sgct::Engine::instance()->transferDataToNode(&state, sizeof(ClientState), 0, 0);
     }
 
@@ -55,30 +54,26 @@ namespace viscom {
     void SlaveNode::DecodeData()
     {
         SlaveNodeInternal::DecodeData();
-        //sgct::SharedData::instance()->readBool(&sharedInit_);
-        sgct::SharedData::instance()->readInt32(&sharedIndex_);
-        sgct::SharedData::instance()->readInt32(&sharedNumberOfSlides_);
-        sgct::SharedData::instance()->readObj(&sharedData_);
-        sgct::SharedData::instance()->readVector(&sharedVector_);
+        sgct::SharedData::instance()->readInt32(&sharedIndex_);;
+    }
+
+    bool SlaveNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
+    {
+        const auto mm = *reinterpret_cast<MasterMessage*>(receivedData);
+        if(!mm.hasData)
+        {
+            number_of_slides_ = mm.numberOfSlide;
+        } else
+        {
+            addTexture(mm.index, mm.descriptor, mm.data);
+        }
+        return true;
     }
 
     void SlaveNode::UpdateSyncedInfo()
     {
         SlaveNodeInternal::UpdateSyncedInfo();
         current_slide_= sharedIndex_.getVal();
-        number_of_slides_ = sharedNumberOfSlides_.getVal();
-        if (current_slide_ < number_of_slides_) {
-            addTexture(sharedIndex_.getVal(), sharedData_.getVal(), sharedVector_.getVal());
-        }
-        else if(current_slide_ == number_of_slides_ && !allTexturesLoaded_)
-        {
-            allTexturesLoaded_ = true;
-        }
-
-        if(allTexturesLoaded_)
-        {
-            setCurrentTexture(textures_[current_slide_]);
-        }
     }
 #endif
 }
