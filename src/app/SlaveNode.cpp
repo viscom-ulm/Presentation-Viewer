@@ -13,7 +13,7 @@
 namespace viscom {
 
     SlaveNode::SlaveNode(ApplicationNodeInternal* appNode) :
-        SlaveNodeInternal{appNode}, current_slide_(0), number_of_slides_(-1)
+        SlaveNodeInternal{appNode}, current_slide_(0), hasData_(false), hasDescriptor_(false)
     {
     }
 
@@ -40,13 +40,9 @@ namespace viscom {
         {
             const auto tex = std::make_shared<Texture>(descriptor, data, GetApplication());
             textures_[index] = tex;
-            LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId();
-            setCurrentTexture(tex);
+            LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId()  << " with textureID: " << tex->getTextureId();
+            setCurrentTexture(textures_[current_slide_]);
         }
-        ClientState state;
-        state.clientId = sgct_core::ClusterManager::instance()->getThisNodeId();
-        state.textureIndex = index;
-        sgct::Engine::instance()->transferDataToNode(&state, sizeof(ClientState), 0, 0);
     }
 
     SlaveNode::~SlaveNode() = default;
@@ -54,18 +50,41 @@ namespace viscom {
     void SlaveNode::DecodeData()
     {
         SlaveNodeInternal::DecodeData();
-        sgct::SharedData::instance()->readInt32(&sharedIndex_);;
+        sgct::SharedData::instance()->readInt32(&sharedIndex_);
     }
 
     bool SlaveNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
     {
-        const auto mm = *reinterpret_cast<MasterMessage*>(receivedData);
-        if(!mm.hasData)
+        unsigned char* data = nullptr;
+        switch (PackageID(packageID)) 
+        { 
+        case Descriptor: 
+            if(!hasDescriptor_)
+            {
+                masterMessage_ = *reinterpret_cast<MasterMessage*>(receivedData);
+                hasDescriptor_ = true;
+            }
+            break;
+        case Data: 
+           if(!hasData_)
+           {
+               data = reinterpret_cast<unsigned char*>(receivedData);
+               data_.resize(receivedLength);
+               std::copy(data, data + receivedLength, data_.begin());
+               hasData_ = true;
+           }
+            break;
+        default: return false;
+        }
+        if(hasData_ && hasDescriptor_)
         {
-            number_of_slides_ = mm.numberOfSlide;
-        } else
-        {
-            addTexture(mm.index, mm.descriptor, mm.data);
+            ClientState clientState(sgct_core::ClusterManager::instance()->getThisNodeId(),masterMessage_.index);
+            sgct::Engine::instance()->transferDataToNode(&clientState, sizeof(ClientState), 0, 0);
+            addTexture(masterMessage_.index, masterMessage_.descriptor, data_.data());
+            data_.resize(0);
+            masterMessage_ = MasterMessage();
+            hasData_ = false,
+            hasDescriptor_ = false;
         }
         return true;
     }

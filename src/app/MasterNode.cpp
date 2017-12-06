@@ -12,7 +12,8 @@
 namespace viscom {
 
     MasterNode::MasterNode(ApplicationNodeInternal* appNode) :
-        ApplicationNodeImplementation{ appNode }, current_slide_(-1), numberOfSlides_(0)
+        ApplicationNodeImplementation{appNode}, current_slide_(0), numberOfSlides_(0),
+        initialized_(false)
     {
     }
 
@@ -20,12 +21,7 @@ namespace viscom {
     {
         ApplicationNodeImplementation::InitOpenGL();
         loadSlides();
-        MasterMessage mm;
-        mm.numberOfSlide = numberOfSlides_;
-        for(auto clientId = 0; clientId < 6; ++clientId)
-        {
-            sgct::Engine::instance()->transferDataToNode(&mm, sizeof(MasterMessage), 0, clientId);
-        }
+        
     }
 
     MasterNode::~MasterNode() = default;
@@ -45,6 +41,7 @@ namespace viscom {
             slideNumber++;
         }
         numberOfSlides_ = texture_slides_.size();
+        clientReceivedTexture_ = std::vector<std::vector<bool>>(6,std::vector<bool>(numberOfSlides_,false));
     }
 
 
@@ -78,6 +75,21 @@ namespace viscom {
 
     bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
     {
+        const auto state = *reinterpret_cast<ClientState*>(receivedData);
+        LOG(INFO) << "client " << state.clientId << " synced texture " << state.textureIndex;
+        clientReceivedTexture_[state.clientId - 1][state.textureIndex] = true;
+        bool initialized = true;
+        for(auto& vec : clientReceivedTexture_)
+        {
+            for(auto& isInitialized : vec)
+            {
+                initialized = initialized && isInitialized;
+                if (initialized) {
+                    initialized_ = true;
+                    setCurrentTexture(getCurrentSlide());
+                }
+            }
+        }
         return true;
     }
 
@@ -87,6 +99,22 @@ namespace viscom {
     {
         ApplicationNodeImplementation::EncodeData();
         sgct::SharedData::instance()->writeInt32(&sharedIndex_);
+        if(!initialized_)
+        {
+            for (auto clientId = 0; clientId < 6; ++clientId)
+            {
+                for (auto i = 0; i < numberOfSlides_; ++i)
+                {
+                    if (!clientReceivedTexture_[clientId][i])
+                    {
+                        const auto tex = texture_slides_[i];
+                        MasterMessage mm(true, numberOfSlides_, i, tex->getDescriptor());
+                        sgct::Engine::instance()->transferDataToNode(tex->getImageDataUC(), tex->getDescriptor().length(), PackageID::Data, clientId);
+                        sgct::Engine::instance()->transferDataToNode(&mm, sizeof(MasterMessage), PackageID::Descriptor, clientId);
+                    }
+                }
+            }
+        }
     }
 
     void MasterNode::PreSync()

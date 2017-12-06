@@ -1,10 +1,10 @@
 /**
- * @file   ApplicationNodeImplementation.cpp
- * @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
- * @date   2016.11.30
- *
- * @brief  Implementation of the application node class.
- */
+* @file   ApplicationNodeImplementation.cpp
+* @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
+* @date   2016.11.30
+*
+* @brief  Implementation of the application node class.
+*/
 
 #include "ApplicationNodeImplementation.h"
 #include "Vertices.h"
@@ -20,7 +20,7 @@
 namespace viscom {
 
     ApplicationNodeImplementation::ApplicationNodeImplementation(ApplicationNodeInternal* appNode) :
-		ApplicationNodeBase{ appNode }
+        ApplicationNodeBase{appNode}, slideProgram_(nullptr), slideTextureLoc_(0)
     {
     }
 
@@ -30,7 +30,7 @@ namespace viscom {
     {
         quad_ = std::make_shared<FullscreenQuad>("slide.frag", GetApplication());
         slideProgram_ = quad_->GetGPUProgram();
-        slideTextureLoc_ = slideProgram_->getUniformLocation("slide"); 
+        slideTextureLoc_ = slideProgram_->getUniformLocation("slide");
     }
 
     void ApplicationNodeImplementation::UpdateFrame(double currentTime, double)
@@ -47,22 +47,22 @@ namespace viscom {
 
     void ApplicationNodeImplementation::DrawFrame(FrameBuffer& fbo)
     {
-		
+
         fbo.DrawToFBO([this]() {
-	        auto windowId = GetApplication()->GetEngine()->getCurrentWindowPtr()->getId();
-	        auto viewportPosition = -GetApplication()->GetViewportScreen(windowId).position_;
-	        auto viewportSize = GetApplication()->GetViewportScreen(windowId).size_;
-	        glViewport(viewportPosition.x, viewportPosition.y, viewportSize.x, viewportSize.y);
-	        glUseProgram(slideProgram_->getProgramId());
-                if (texture_.get()) {
-                    glActiveTexture(GL_TEXTURE0 + 0);
-                    glBindTexture(GL_TEXTURE_2D, texture_->getTextureId());
-                    glUniform1i(slideTextureLoc_, 0);
-                    quad_->Draw();
-                }
-	        glBindBuffer(GL_ARRAY_BUFFER, 0);
-	        glBindVertexArray(0);
-	        glUseProgram(0);
+            auto windowId = GetApplication()->GetEngine()->getCurrentWindowPtr()->getId();
+            auto viewportPosition = -GetApplication()->GetViewportScreen(windowId).position_;
+            auto viewportSize = GetApplication()->GetViewportScreen(windowId).size_;
+            glViewport(viewportPosition.x, viewportPosition.y, viewportSize.x, viewportSize.y);
+            glUseProgram(slideProgram_->getProgramId());
+            if (texture_.get()) {
+                glActiveTexture(GL_TEXTURE0 + 0);
+                glBindTexture(GL_TEXTURE_2D, texture_->getTextureId());
+                glUniform1i(slideTextureLoc_, 0);
+                quad_->Draw();
+            }
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
+            glBindVertexArray(0);
+            glUseProgram(0);
 
         });
 
