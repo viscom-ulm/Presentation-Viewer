@@ -12,15 +12,22 @@
 
 namespace viscom {
 
-    SlaveNode::SlaveNode(ApplicationNodeInternal* appNode) :
-        SlaveNodeInternal{appNode}, current_slide_(0), hasData_(false), hasDescriptor_(false)
+    SlaveNode::SlaveNode(ApplicationNodeInternal* appNode) 
+	:SlaveNodeInternal{appNode}
+#ifdef VISCOM_USE_SGCT
+	,current_slide_(0)
+	,hasData_(false)
+	,hasDescriptor_(false)
+#endif
     {
     }
 
     void SlaveNode::InitOpenGL()
     {
         SlaveNodeInternal::InitOpenGL();
+#ifdef VISCOM_USE_SGCT
         LOG(INFO) << "This is client: " << sgct_core::ClusterManager::instance()->getThisNodeId();
+#endif
         LOG(INFO) << "InitOpenGL::glGetError(): " << glGetError();
     }
 
@@ -31,23 +38,23 @@ namespace viscom {
 #endif
 
         // always do this call last!
-        //SlaveNodeInternal::Draw2D(fbo);
-    }
-
-    void SlaveNode::addTexture(int index, TextureDescriptor descriptor, unsigned char* data)
-    {
-        if (!data) return;
-        if(!isSynced(index))
-        {
-            const auto texture = GetTextureManager().GetResource(std::string("texture").append(std::to_string(index)), descriptor, data);
-            textures_[index] = texture;
-            LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId()  << " with textureID: " << texture->getTextureId();
-            setCurrentTexture(textures_[current_slide_]);
-        }
+        SlaveNodeInternal::Draw2D(fbo);
     }
 
     SlaveNode::~SlaveNode() = default;
 #ifdef VISCOM_USE_SGCT
+	void SlaveNode::addTexture(int index, TextureDescriptor descriptor, unsigned char* data)
+	{
+		if (!data) return;
+		if (!isSynced(index))
+		{
+			const auto texture = GetTextureManager().GetResource(std::string("texture").append(std::to_string(index)), descriptor, data);
+			textures_[index] = texture;
+			LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId() << " with textureID: " << texture->getTextureId();
+			setCurrentTexture(textures_[current_slide_]);
+		}
+	}
+
     void SlaveNode::DecodeData()
     {
         SlaveNodeInternal::DecodeData();

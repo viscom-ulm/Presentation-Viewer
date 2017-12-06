@@ -20,11 +20,12 @@ namespace viscom {
         virtual ~SlaveNode() override;
         virtual void InitOpenGL() override;
         void Draw2D(FrameBuffer& fbo) override;
-        void addTexture(int index, TextureDescriptor descriptor, unsigned char* data);
-        bool isSynced(int index) const { return textures_.find(index) != textures_.end(); };
-        virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
+        
 
 #ifdef VISCOM_USE_SGCT
+		void addTexture(int index, TextureDescriptor descriptor, unsigned char* data);
+		bool isSynced(int index) const { return textures_.find(index) != textures_.end(); };
+		virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
         virtual void UpdateSyncedInfo() override;
         virtual void DecodeData() override;
 
@@ -32,7 +33,7 @@ namespace viscom {
         /** Holds the data shared by the master. */
         sgct::SharedInt32 sharedIndex_;
         int current_slide_;
-        std::map<int, std::shared_ptr<Texture>> textures_;
+        
         std::vector<unsigned char> data_;
         MasterMessage masterMessage_;
         bool hasData_;

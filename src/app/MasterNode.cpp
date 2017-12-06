@@ -11,9 +11,13 @@
 
 namespace viscom {
 
-    MasterNode::MasterNode(ApplicationNodeInternal* appNode) :
-        ApplicationNodeImplementation{appNode}, current_slide_(0), numberOfSlides_(0),
-        initialized_(false)
+    MasterNode::MasterNode(ApplicationNodeInternal* appNode) 
+	: ApplicationNodeImplementation{appNode}
+	, current_slide_(0)
+	, numberOfSlides_(0)
+#ifdef VISCOM_USE_SGCT
+	, initialized_(false)
+#endif
     {
     }
 
@@ -32,15 +36,19 @@ namespace viscom {
 
     void MasterNode::loadSlides() {
         auto slideNumber = 1;
-        while (exists_test3("resources/slides/Folie" + std::to_string(slideNumber) + ".PNG"))
+        while (exists_test3("../resources/slides/Slide" + std::to_string(slideNumber) + ".PNG"))
         {
-            const auto texture = GetTextureManager().GetResource("/slides/Folie" + std::to_string(slideNumber) + ".PNG");
+            const auto texture = GetTextureManager().GetResource("/slides/Slide" + std::to_string(slideNumber) + ".PNG");
             if (!texture) break;
             texture_slides_.push_back(texture);
             slideNumber++;
         }
         numberOfSlides_ = texture_slides_.size();
+		if(numberOfSlides_ > 0)
+			setCurrentTexture(texture_slides_[0]);
+#ifdef VISCOM_USE_SGCT
         clientReceivedTexture_ = std::vector<std::vector<bool>>(6,std::vector<bool>(numberOfSlides_,false));
+#endif
     }
 
 
@@ -65,35 +73,35 @@ namespace viscom {
                 if (current_slide_ + 1 < numberOfSlides_) {
                     current_slide_++;
                 }
+				auto data = texture_slides_[current_slide_]->getImageDataUC();
                 setCurrentTexture(texture_slides_[current_slide_]);
                 return true;
             }
         default: return false;
         }
     }
-
-    bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
-    {
-        const auto state = *reinterpret_cast<ClientState*>(receivedData);
-        LOG(INFO) << "client " << state.clientId << " synced texture " << state.textureIndex;
-        clientReceivedTexture_[state.clientId - 1][state.textureIndex] = true;
-        bool initialized = true;
-        for(auto& vec : clientReceivedTexture_)
-        {
-            for(auto& isInitialized : vec)
-            {
-                initialized = initialized && isInitialized;
-                if (initialized) {
-                    initialized_ = true;
-                    setCurrentTexture(getCurrentSlide());
-                }
-            }
-        }
-        return true;
-    }
-
-
 #ifdef VISCOM_USE_SGCT
+	bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
+	{
+		const auto state = *reinterpret_cast<ClientState*>(receivedData);
+		LOG(INFO) << "client " << state.clientId << " synced texture " << state.textureIndex;
+		clientReceivedTexture_[state.clientId - 1][state.textureIndex] = true;
+		bool initialized = true;
+		for (auto& vec : clientReceivedTexture_)
+		{
+			for (auto& isInitialized : vec)
+			{
+				initialized = initialized && isInitialized;
+				if (initialized) {
+					initialized_ = true;
+					setCurrentTexture(getCurrentSlide());
+				}
+			}
+		}
+		return true;
+	}
+
+
     void MasterNode::EncodeData()
     {
         ApplicationNodeImplementation::EncodeData();

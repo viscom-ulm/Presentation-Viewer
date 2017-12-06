@@ -49,10 +49,12 @@ namespace viscom {
     {
 
         fbo.DrawToFBO([this]() {
+#ifdef VISCOM_USE_SGCT
             auto windowId = GetApplication()->GetEngine()->getCurrentWindowPtr()->getId();
             auto viewportPosition = -GetApplication()->GetViewportScreen(windowId).position_;
             auto viewportSize = GetApplication()->GetViewportScreen(windowId).size_;
             glViewport(viewportPosition.x, viewportPosition.y, viewportSize.x, viewportSize.y);
+#endif
             glUseProgram(slideProgram_->getProgramId());
             if (texture_.get()) {
                 glActiveTexture(GL_TEXTURE0 + 0);

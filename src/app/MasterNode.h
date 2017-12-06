@@ -45,7 +45,7 @@ namespace viscom {
         virtual void InitOpenGL() override;
         virtual void Draw2D(FrameBuffer& fbo) override;
         virtual bool KeyboardCallback(int key, int scancode, int action, int mods) override;
-        virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
+        
         // ###################### https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c ##########
         inline bool exists_test3(const std::string& name) {
             struct stat buffer;
@@ -60,10 +60,13 @@ namespace viscom {
 #ifdef VISCOM_USE_SGCT
         virtual void EncodeData() override;
         virtual void PreSync() override;
+		virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
 #endif
     private:
 #ifdef VISCOM_USE_SGCT
         sgct::SharedInt32 sharedIndex_;
+		std::vector<std::vector<bool>> clientReceivedTexture_;
+		bool initialized_;
 #endif
         /** Holds the index of the current displayed slide */
         int current_slide_;
@@ -71,8 +74,7 @@ namespace viscom {
         int numberOfSlides_;
         /** The vector holds all available slide textures */
         std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
-        std::vector<std::vector<bool>> clientReceivedTexture_;
-        bool initialized_;
+        
 
     };
 }
