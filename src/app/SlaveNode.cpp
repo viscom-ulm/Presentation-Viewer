@@ -19,8 +19,9 @@ namespace viscom {
 
     void SlaveNode::InitOpenGL()
     {
-        LOG(INFO) << "This is client: " << sgct_core::ClusterManager::instance()->getThisNodeId();
         SlaveNodeInternal::InitOpenGL();
+        LOG(INFO) << "This is client: " << sgct_core::ClusterManager::instance()->getThisNodeId();
+        LOG(INFO) << "InitOpenGL::glGetError(): " << glGetError();
     }
 
     void SlaveNode::Draw2D(FrameBuffer& fbo)
@@ -30,7 +31,7 @@ namespace viscom {
 #endif
 
         // always do this call last!
-        SlaveNodeInternal::Draw2D(fbo);
+        //SlaveNodeInternal::Draw2D(fbo);
     }
 
     void SlaveNode::addTexture(int index, TextureDescriptor descriptor, unsigned char* data)
@@ -38,9 +39,9 @@ namespace viscom {
         if (!data) return;
         if(!isSynced(index))
         {
-            const auto tex = std::make_shared<Texture>(descriptor, data, GetApplication());
-            textures_[index] = tex;
-            LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId()  << " with textureID: " << tex->getTextureId();
+            const auto texture = GetTextureManager().GetResource(std::string("texture").append(std::to_string(index)), descriptor, data);
+            textures_[index] = texture;
+            LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId()  << " with textureID: " << texture->getTextureId();
             setCurrentTexture(textures_[current_slide_]);
         }
     }
@@ -51,10 +52,12 @@ namespace viscom {
     {
         SlaveNodeInternal::DecodeData();
         sgct::SharedData::instance()->readInt32(&sharedIndex_);
+        LOG(INFO) << "DecodeData::glGetError(): " << glGetError();
     }
 
     bool SlaveNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
     {
+        LOG(INFO) << "DataTransferCallback::glGetError(): " << glGetError();
         unsigned char* data = nullptr;
         switch (PackageID(packageID)) 
         { 
@@ -92,7 +95,15 @@ namespace viscom {
     void SlaveNode::UpdateSyncedInfo()
     {
         SlaveNodeInternal::UpdateSyncedInfo();
-        current_slide_= sharedIndex_.getVal();
+        if(current_slide_ != sharedIndex_.getVal())
+        {
+            current_slide_ = sharedIndex_.getVal();
+            if(textures_.find(current_slide_) != textures_.end())
+            {
+                setCurrentTexture(textures_[current_slide_]);
+            }
+        }
+        LOG(INFO) << "UpdateSyncedInfo::glGetError(): " << glGetError();
     }
 #endif
 }

@@ -21,7 +21,6 @@ namespace viscom {
     {
         ApplicationNodeImplementation::InitOpenGL();
         loadSlides();
-        
     }
 
     MasterNode::~MasterNode() = default;
