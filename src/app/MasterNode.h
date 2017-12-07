@@ -28,10 +28,9 @@ namespace viscom {
 
     struct MasterMessage
     {
-        MasterMessage() : hasData(false), numberOfSlide(0), index(-1), descriptor(0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, 0, 0, 0) {}
-        MasterMessage(bool hd, int nos, int i, TextureDescriptor des) : hasData(hd), numberOfSlide(nos), index(i), descriptor(des)
+        MasterMessage() : numberOfSlide(0), index(-1), descriptor(0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, 0, 0, 0) {}
+        MasterMessage(int nos, int i, TextureDescriptor des) :numberOfSlide(nos), index(i), descriptor(des)
         {        }
-        bool hasData;
         int numberOfSlide;
         int index;
         TextureDescriptor descriptor;

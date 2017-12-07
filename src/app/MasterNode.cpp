@@ -36,9 +36,9 @@ namespace viscom {
 
     void MasterNode::loadSlides() {
         auto slideNumber = 1;
-        while (exists_test3("../resources/slides/Slide" + std::to_string(slideNumber) + ".PNG"))
+        while (exists_test3("resources/slides/Folie" + std::to_string(slideNumber) + ".PNG"))
         {
-            const auto texture = GetTextureManager().GetResource("/slides/Slide" + std::to_string(slideNumber) + ".PNG");
+            const auto texture = GetTextureManager().GetResource("/slides/Folie" + std::to_string(slideNumber) + ".PNG");
             if (!texture) break;
             texture_slides_.push_back(texture);
             slideNumber++;
@@ -115,7 +115,7 @@ namespace viscom {
                     if (!clientReceivedTexture_[clientId][i])
                     {
                         const auto tex = texture_slides_[i];
-                        MasterMessage mm(true, numberOfSlides_, i, tex->getDescriptor());
+                        MasterMessage mm(numberOfSlides_, i, tex->getDescriptor());
                         sgct::Engine::instance()->transferDataToNode(tex->getImageDataUC(), tex->getDescriptor().length(), PackageID::Data, clientId);
                         sgct::Engine::instance()->transferDataToNode(&mm, sizeof(MasterMessage), PackageID::Descriptor, clientId);
                     }

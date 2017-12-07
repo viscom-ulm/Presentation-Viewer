@@ -33,11 +33,13 @@ namespace viscom {
         /** Holds the data shared by the master. */
         sgct::SharedInt32 sharedIndex_;
         int current_slide_;
-        
+        int number_of_slides_;
+        std::map<int, std::shared_ptr<Texture>> textures_;
         std::vector<unsigned char> data_;
         MasterMessage masterMessage_;
         bool hasData_;
         bool hasDescriptor_;
+        std::vector<std::pair<TextureDescriptor, unsigned char*>> buffered_image_data_;
 #endif
     };
 }
