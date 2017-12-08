@@ -43,18 +43,18 @@ namespace viscom {
 
     SlaveNode::~SlaveNode() = default;
 #ifdef VISCOM_USE_SGCT
-	void SlaveNode::addTexture(int index, TextureDescriptor descriptor, unsigned char* data)
-	{
-		if (!data) return;
-		if (!isSynced(index))
-		{
+    void SlaveNode::addTexture(int index, TextureDescriptor descriptor, std::vector<float> data)
+    {
+        if (!data) return;
+        if (!isSynced(index))
+        {
             buffered_image_data_[index] = std::make_pair(descriptor, data);
-			//const auto texture = GetTextureManager().GetResource(std::string("texture").append(std::to_string(index)), descriptor, data);
-			//textures_[index] = texture;
-			LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId();
-			//setCurrentTexture(textures_[current_slide_]);
-		}
-	}
+            //const auto texture = GetTextureManager().GetResource(std::string("texture").append(std::to_string(index)), descriptor, data);
+            //textures_[index] = texture;
+            LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId();
+            //setCurrentTexture(textures_[current_slide_]);
+        }
+    }
 
     void SlaveNode::DecodeData()
     {
@@ -66,7 +66,7 @@ namespace viscom {
     bool SlaveNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
     {
         LOG(INFO) << "DataTransferCallback::glGetError(): " << glGetError();
-        unsigned char* data = nullptr;
+        float* data = nullptr;
         switch (PackageID(packageID)) 
         { 
         case Descriptor: 
@@ -81,7 +81,7 @@ namespace viscom {
         case Data: 
            if(!hasData_)
            {
-               data = reinterpret_cast<unsigned char*>(receivedData);
+               data = reinterpret_cast<float*>(receivedData);
                data_.resize(receivedLength);
                std::copy(data, data + receivedLength, data_.begin());
                hasData_ = true;
@@ -95,7 +95,7 @@ namespace viscom {
                 buffered_image_data_.resize(number_of_slides_, std::make_pair(TextureDescriptor(0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE , 0, 0, 0 ), nullptr));
             ClientState clientState(sgct_core::ClusterManager::instance()->getThisNodeId(),masterMessage_.index);
             sgct::Engine::instance()->transferDataToNode(&clientState, sizeof(ClientState), 0, 0);
-            addTexture(masterMessage_.index, masterMessage_.descriptor, data_.data());
+            addTexture(masterMessage_.index, masterMessage_.descriptor, data_);
             data_.resize(0);
             masterMessage_ = MasterMessage();
             hasData_ = false,
