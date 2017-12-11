@@ -8,13 +8,18 @@
 
 #include "MasterNode.h"
 #include <imgui.h>
+#include "Filesystem.h"
+#include <windows.h>
+
 
 namespace viscom {
 
-    MasterNode::MasterNode(ApplicationNodeInternal* appNode) 
-	: ApplicationNodeImplementation{appNode}
-	, current_slide_(0)
-	, numberOfSlides_(0)
+    MasterNode::MasterNode(ApplicationNodeInternal* appNode)
+        : ApplicationNodeImplementation{appNode}
+          , current_slide_(0)
+          , numberOfSlides_(0)
+          , inputDir_("D:/dev")
+          , inputDirectorySelected_(false)
 #ifdef VISCOM_USE_SGCT
 	, initialized_(false)
 #endif
@@ -24,24 +29,58 @@ namespace viscom {
     void MasterNode::InitOpenGL()
     {
         ApplicationNodeImplementation::InitOpenGL();
-        loadSlides();
     }
 
     MasterNode::~MasterNode() = default;
 
     void MasterNode::Draw2D(FrameBuffer& fbo)
     {
+        fbo.DrawToFBO([&]() {
+            
+            
+            ImGui::SetNextWindowPos(ImVec2(700, 60), ImGuiSetCond_FirstUseEver);
+            ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
+            if (!inputDirectorySelected_ && ImGui::Begin("Select input directory", nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_ShowBorders))
+            {
+                ImGui::Text(inputDir_.data());
+                for(auto &path : getDirectoryContent(inputDir_))
+                {
+                    bool selected = false;
+                    ImGui::Selectable(path.data(), &selected);
+                    if(selected)
+                    {
+                        if(path == "..")
+                        {
+                            removeLastDir(inputDir_);
+                        } else
+                        {
+                            inputDir_.append("/").append(path);
+                        }
+                    }
+                }
+
+                inputDirectorySelected_ = ImGui::Button("Select Folder", ImVec2(50, 20));
+                if(inputDirectorySelected_)
+                {
+                    loadSlides();
+                }
+                ImGui::End();
+            }
+            
+        });
         ApplicationNodeImplementation::Draw2D(fbo);
     }
 
     void MasterNode::loadSlides() {
         auto slideNumber = 1;
-        while (Texture::IsResource("/slides/Folie" + std::to_string(slideNumber) + ".PNG", GetApplication()))
+        std::vector<std::string> slides = getFiles(inputDir_);
+        std::sort(slides.begin(), slides.end(), viscom::comparePaths);
+
+        for(auto& slide : slides)
         {
-            const auto texture = GetTextureManager().GetResource("/slides/Folie" + std::to_string(slideNumber) + ".PNG");
+            const auto texture = GetTextureManager().GetResource(slide);
             if (!texture) break;
             texture_slides_.push_back(texture);
-            slideNumber++;
         }
         numberOfSlides_ = texture_slides_.size();
 		if(numberOfSlides_ > 0)
@@ -50,8 +89,6 @@ namespace viscom {
         clientReceivedTexture_ = std::vector<std::vector<bool>>(6,std::vector<bool>(numberOfSlides_,false));
 #endif
     }
-
-
 
     bool MasterNode::KeyboardCallback(int key, int scancode, int action, int mods)
     {
@@ -78,6 +115,32 @@ namespace viscom {
             }
         default: return false;
         }
+    }
+
+    std::vector<std::string> MasterNode::getDirectoryContent(const std::string& dir, const bool returnFiles) const
+    {
+        std::vector<std::string> content;
+        std::string path = dir;
+        path.append("\\*");
+        WIN32_FIND_DATA data;
+        HANDLE hFind;
+        if ((hFind = FindFirstFile(path.c_str(), &data)) != INVALID_HANDLE_VALUE) {
+            do {
+                if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && !returnFiles)
+                {
+                    content.push_back(std::string(data.cFileName));
+                } 
+                
+                if(returnFiles)
+                {
+                    const auto file = dir + std::string("/").append(data.cFileName);
+                    if(Resource::IsResource(file, GetApplication()))
+                        content.push_back(file);
+                }
+            } while (FindNextFile(hFind, &data) != 0);
+            FindClose(hFind);
+        }
+        return content;
     }
 #ifdef VISCOM_USE_SGCT
 	bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)

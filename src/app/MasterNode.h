@@ -14,6 +14,7 @@
 #endif
 
 namespace viscom {
+
     enum PackageID : int {
         Descriptor = 0,
         Data = 1
@@ -44,13 +45,9 @@ namespace viscom {
         virtual void InitOpenGL() override;
         virtual void Draw2D(FrameBuffer& fbo) override;
         virtual bool KeyboardCallback(int key, int scancode, int action, int mods) override;
+        std::vector<std::string> getDirectoryContent(const std::string &dir, bool returnFiles = false) const;
+        std::vector<std::string> getFiles(const std::string &dir) { return getDirectoryContent(dir, true); }
         
-        // ###################### https://stackoverflow.com/questions/12774207/fastest-way-to-check-if-a-file-exist-using-standard-c-c11-c ##########
-        inline bool exists_test3(const std::string& name) {
-            struct stat buffer;
-            return (stat(name.c_str(), &buffer) == 0);
-        }
-        // ##########################################################################################################################################
 
         /** iterates over resource/slides folder and loads textures */
         void loadSlides();
@@ -70,10 +67,12 @@ namespace viscom {
         /** Holds the index of the current displayed slide */
         int current_slide_;
         /** Holds the number of slides */
-        int numberOfSlides_;
+        size_t numberOfSlides_;
         /** The vector holds all available slide textures */
         std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
-        
-
+        /* Holds the input directory containing slides*/
+        std::string inputDir_;
+        /**/
+        bool inputDirectorySelected_;
     };
 }
