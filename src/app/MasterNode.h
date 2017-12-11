@@ -31,7 +31,7 @@ namespace viscom {
     {
         MasterMessage() : numberOfSlide(0), index(-1), descriptor(0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, 0, 0, 0) {}
         MasterMessage(int nos, int i, TextureDescriptor des) :numberOfSlide(nos), index(i), descriptor(des)
-        {        }
+        {     }
         int numberOfSlide;
         int index;
         TextureDescriptor descriptor;

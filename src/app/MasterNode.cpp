@@ -83,10 +83,21 @@ namespace viscom {
             texture_slides_.push_back(texture);
         }
         numberOfSlides_ = texture_slides_.size();
-		if(numberOfSlides_ > 0)
-			setCurrentTexture(texture_slides_[0]);
 #ifdef VISCOM_USE_SGCT
         clientReceivedTexture_ = std::vector<std::vector<bool>>(6,std::vector<bool>(numberOfSlides_,false));
+        for (auto clientId = 0; clientId < 6; ++clientId)
+            {
+                for (auto i = 0; i < numberOfSlides_; ++i)
+                {
+                    if (!clientReceivedTexture_[clientId][i])
+                    {
+                        const auto tex = texture_slides_[i];
+                        MasterMessage mm(numberOfSlides_, i, tex->getDescriptor());
+                        sgct::Engine::instance()->transferDataToNode(tex->data(), tex->getImageData().size(), PackageID::Data, clientId);
+                        sgct::Engine::instance()->transferDataToNode(&mm, sizeof(MasterMessage), PackageID::Descriptor, clientId);
+                    }
+                }
+            }
 #endif
     }
 
@@ -148,6 +159,9 @@ namespace viscom {
 		const auto state = *reinterpret_cast<ClientState*>(receivedData);
 		LOG(INFO) << "client " << state.clientId << " synced texture " << state.textureIndex;
 		clientReceivedTexture_[state.clientId - 1][state.textureIndex] = true;
+
+
+
 		bool initialized = true;
 		for (auto& vec : clientReceivedTexture_)
 		{
@@ -160,15 +174,8 @@ namespace viscom {
 				}
 			}
 		}
-		return true;
-	}
 
-
-    void MasterNode::EncodeData()
-    {
-        ApplicationNodeImplementation::EncodeData();
-        sgct::SharedData::instance()->writeInt32(&sharedIndex_);
-        if(!initialized_)
+        if (!initialized_)
         {
             for (auto clientId = 0; clientId < 6; ++clientId)
             {
@@ -178,12 +185,21 @@ namespace viscom {
                     {
                         const auto tex = texture_slides_[i];
                         MasterMessage mm(numberOfSlides_, i, tex->getDescriptor());
-                        sgct::Engine::instance()->transferDataToNode(tex->data(), tex->getDescriptor().length(), PackageID::Data, clientId);
+                        sgct::Engine::instance()->transferDataToNode(tex->data(), tex->getImageData().size(), PackageID::Data, clientId);
                         sgct::Engine::instance()->transferDataToNode(&mm, sizeof(MasterMessage), PackageID::Descriptor, clientId);
                     }
                 }
             }
         }
+
+		return true;
+	}
+
+
+    void MasterNode::EncodeData()
+    {
+        ApplicationNodeImplementation::EncodeData();
+        sgct::SharedData::instance()->writeInt32(&sharedIndex_);
     }
 
     void MasterNode::PreSync()

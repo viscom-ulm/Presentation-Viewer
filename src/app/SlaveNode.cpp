@@ -43,16 +43,12 @@ namespace viscom {
 
     SlaveNode::~SlaveNode() = default;
 #ifdef VISCOM_USE_SGCT
-    void SlaveNode::addTexture(int index, TextureDescriptor descriptor, std::vector<float> data)
+    void SlaveNode::addTexture(int index, TextureDescriptor descriptor, std::vector<cType> data)
     {
-        if (!data) return;
+        if (data.size() <= 0) return;
         if (!isSynced(index))
         {
-            buffered_image_data_[index] = std::make_pair(descriptor, data);
-            //const auto texture = GetTextureManager().GetResource(std::string("texture").append(std::to_string(index)), descriptor, data);
-            //textures_[index] = texture;
-            LOG(INFO) << "slide " << index << " for client " << sgct_core::ClusterManager::instance()->getThisNodeId();
-            //setCurrentTexture(textures_[current_slide_]);
+            buffered_image_data_.push_back(std::make_pair(descriptor, data));
         }
     }
 
@@ -60,13 +56,11 @@ namespace viscom {
     {
         SlaveNodeInternal::DecodeData();
         sgct::SharedData::instance()->readInt32(&sharedIndex_);
-        LOG(INFO) << "DecodeData::glGetError(): " << glGetError();
     }
 
     bool SlaveNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
     {
-        LOG(INFO) << "DataTransferCallback::glGetError(): " << glGetError();
-        float* data = nullptr;
+        std::vector<cType> data ;
         switch (PackageID(packageID)) 
         { 
         case Descriptor: 
@@ -81,9 +75,12 @@ namespace viscom {
         case Data: 
            if(!hasData_)
            {
-               data = reinterpret_cast<float*>(receivedData);
-               data_.resize(receivedLength);
-               std::copy(data, data + receivedLength, data_.begin());
+               //data = static_cast<std::vector<cType>>(receivedData);
+               const auto size = receivedLength / sizeof(cType);
+               std::vector<cType> vuc(static_cast<cType*>(receivedData), static_cast<cType*>(receivedData) + size);
+               data_.resize(size);
+               //std::copy(data, data + size, data_.begin());
+               std::copy(vuc.begin(), vuc.end(), data_.begin());
                hasData_ = true;
            }
             break;
@@ -91,8 +88,6 @@ namespace viscom {
         }
         if(hasData_ && hasDescriptor_)
         {
-            if (buffered_image_data_.size() <= 0)
-                buffered_image_data_.resize(number_of_slides_, std::make_pair(TextureDescriptor(0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE , 0, 0, 0 ), nullptr));
             ClientState clientState(sgct_core::ClusterManager::instance()->getThisNodeId(),masterMessage_.index);
             sgct::Engine::instance()->transferDataToNode(&clientState, sizeof(ClientState), 0, 0);
             addTexture(masterMessage_.index, masterMessage_.descriptor, data_);
@@ -115,15 +110,11 @@ namespace viscom {
                 textures_[i] = texture;
             }
         }
-        if(current_slide_ != sharedIndex_.getVal())
+        current_slide_ = sharedIndex_.getVal();
+        if (textures_.find(current_slide_) != textures_.end())
         {
-            current_slide_ = sharedIndex_.getVal();
-            if(textures_.find(current_slide_) != textures_.end())
-            {
-                setCurrentTexture(textures_[current_slide_]);
-            }
+            setCurrentTexture(textures_[current_slide_]);
         }
-        LOG(INFO) << "UpdateSyncedInfo::glGetError(): " << glGetError();
     }
 #endif
 }

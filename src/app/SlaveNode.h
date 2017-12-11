@@ -23,7 +23,7 @@ namespace viscom {
         
 
 #ifdef VISCOM_USE_SGCT
-		void addTexture(int index, TextureDescriptor descriptor, std::vector<float> data);
+		void addTexture(int index, TextureDescriptor descriptor, std::vector<cType> data);
 		bool isSynced(int index) const { return textures_.find(index) != textures_.end(); };
 		virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
         virtual void UpdateSyncedInfo() override;
@@ -35,11 +35,11 @@ namespace viscom {
         int current_slide_;
         int number_of_slides_;
         std::map<int, std::shared_ptr<Texture>> textures_;
-        std::vector<float> data_;
+        std::vector<cType> data_;
         MasterMessage masterMessage_;
         bool hasData_;
         bool hasDescriptor_;
-        std::vector<std::pair<TextureDescriptor, std::vector<float>>> buffered_image_data_;
+        std::vector<std::pair<TextureDescriptor, std::vector<cType>>> buffered_image_data_;
 #endif
     };
 }
