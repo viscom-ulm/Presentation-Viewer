@@ -7,13 +7,13 @@
  */
 
 #include "core/main.h"
-#include <fstream>
-#include <iostream>
-#include <g3log/logworker.hpp>
-#include <g3log/loglevels.hpp>
-#include "core/g3log/filesink.h"
 #include "core/ApplicationNodeInternal.h"
+#include "core/g3log/filesink.h"
 #include "core/initialize.h"
+#include <fstream>
+#include <g3log/loglevels.hpp>
+#include <g3log/logworker.hpp>
+#include <iostream>
 
 int main(int argc, char** argv)
 {
@@ -32,6 +32,7 @@ int main(int argc, char** argv)
 
     LOG(INFO) << "Log created.";
     viscom::FWConfiguration config;
+    config.resourceSearchPaths_.push_back("");
     if (argc > 1) config = viscom::LoadConfiguration(argv[1]);
     else config = viscom::LoadConfiguration("framework.cfg");
     auto appNode = Application_Init(config);

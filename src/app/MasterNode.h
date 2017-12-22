@@ -16,25 +16,33 @@
 namespace viscom {
 
     enum PackageID : int {
-        Descriptor = 0,
-        Data = 1
+        PresentationData = 0,
+        TextureData = 1
     };
     struct ClientState
     {
         ClientState() : clientId(-1), textureIndex(-1) {}
-        ClientState(int cId, int tIdx) : clientId(cId), textureIndex(tIdx) {}
+        ClientState(int cId) : clientId(cId), textureIndex(-1), numberOfSlides(-1) {}
         int clientId;
         int textureIndex;
+        int numberOfSlides;
     };
 
-    struct MasterMessage
+    struct SlideTexDescriptor
     {
-        MasterMessage() : numberOfSlide(0), index(-1), descriptor(0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE, 0, 0, 0) {}
-        MasterMessage(int nos, int i, TextureDescriptor des) :numberOfSlide(nos), index(i), descriptor(des)
-        {     }
-        int numberOfSlide;
-        int index;
-        TextureDescriptor descriptor;
+        SlideTexDescriptor(const TextureDescriptor& desc) noexcept : desc_{ desc } {}
+
+        TextureDescriptor desc_;
+        std::size_t width_;
+        std::size_t height_;
+    };
+
+    struct TextureHeaderMessage
+    {
+        TextureHeaderMessage() : index(-1), descriptor(TextureDescriptor{ 0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE }) {}
+        TextureHeaderMessage(std::size_t nos, std::size_t i, SlideTexDescriptor des) : index(i), descriptor(des) { }
+        std::size_t index;
+        SlideTexDescriptor descriptor;
     };
 
     class MasterNode final : public ApplicationNodeImplementation
@@ -43,6 +51,7 @@ namespace viscom {
         explicit MasterNode(ApplicationNodeInternal* appNode);
         virtual ~MasterNode() override;
         virtual void InitOpenGL() override;
+        virtual void UpdateFrame(double currentTime, double elapsedTime) override;
         virtual void Draw2D(FrameBuffer& fbo) override;
         virtual bool KeyboardCallback(int key, int scancode, int action, int mods) override;
         std::vector<std::string> getDirectoryContent(const std::string &dir, bool returnFiles = false) const;
@@ -56,14 +65,19 @@ namespace viscom {
 #ifdef VISCOM_USE_SGCT
         virtual void EncodeData() override;
         virtual void PreSync() override;
-		virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
+        virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
 #endif
     private:
 #ifdef VISCOM_USE_SGCT
         sgct::SharedInt32 sharedIndex_;
-		std::vector<std::vector<bool>> clientReceivedTexture_;
-		bool initialized_;
 #endif
+
+        std::vector<std::vector<bool>> clientReceivedTexture_;
+        std::vector<bool> presentationInitialized_;
+        bool allTexturesInitialized_;
+        void TransferSlide(std::size_t slideID, std::size_t clientId) const;
+        void GetTextureData(std::vector<uint8_t>& data, const SlideTexDescriptor& desc, GLuint textureId) const;
+
         /** Holds the index of the current displayed slide */
         int current_slide_;
         /** Holds the number of slides */

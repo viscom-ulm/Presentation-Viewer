@@ -7,15 +7,14 @@
 */
 
 #include "ApplicationNodeImplementation.h"
-#include "Vertices.h"
-#include <imgui.h>
 #include "core/gfx/mesh/MeshRenderable.h"
 #include "core/imgui/imgui_impl_glfw_gl3.h"
-#include <iostream>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
+#include <iostream>
 
 namespace viscom {
 
@@ -56,9 +55,9 @@ namespace viscom {
             glViewport(viewportPosition.x, viewportPosition.y, viewportSize.x, viewportSize.y);
 #endif
             glUseProgram(slideProgram_->getProgramId());
-            if (texture_.get()) {
+            if (texture_ != 0) {
                 glActiveTexture(GL_TEXTURE0 + 0);
-                glBindTexture(GL_TEXTURE_2D, texture_->getTextureId());
+                glBindTexture(GL_TEXTURE_2D, texture_);
                 glUniform1i(slideTextureLoc_, 0);
                 quad_->Draw();
             }

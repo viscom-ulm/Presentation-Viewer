@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "core/SlaveNodeHelper.h"
 #include "MasterNode.h"
+#include "core/SlaveNodeHelper.h"
 
 namespace viscom {
 
@@ -22,24 +22,25 @@ namespace viscom {
         void Draw2D(FrameBuffer& fbo) override;
         
 
-#ifdef VISCOM_USE_SGCT
-		void addTexture(int index, TextureDescriptor descriptor, std::vector<cType> data);
-		bool isSynced(int index) const { return textures_.find(index) != textures_.end(); };
-		virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
+        void addTexture(int index, const SlideTexDescriptor& descriptor, const std::vector<std::uint8_t>& data);
+        bool isSynced(int index) const { return hasTextures_[index]; };
+        virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
         virtual void UpdateSyncedInfo() override;
         virtual void DecodeData() override;
 
     private:
+#ifdef VISCOM_USE_SGCT
         /** Holds the data shared by the master. */
         sgct::SharedInt32 sharedIndex_;
-        int current_slide_;
-        int number_of_slides_;
-        std::map<int, std::shared_ptr<Texture>> textures_;
-        std::vector<cType> data_;
-        MasterMessage masterMessage_;
-        bool hasData_;
-        bool hasDescriptor_;
-        std::vector<std::pair<TextureDescriptor, std::vector<cType>>> buffered_image_data_;
 #endif
+        std::size_t current_slide_;
+        // std::size_t number_of_slides_;
+        std::vector<GLuint> textureIds_;
+        std::vector<bool> hasTextures_;
+        // std::vector<std::uint8_t> data_;
+        // MasterMessage masterMessage_;
+        // bool hasData_;
+        // bool hasDescriptor_;
+        // std::vector<std::pair<SlideTexDescriptor, std::vector<std::uint8_t>>> buffered_image_data_;
     };
 }

@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "core/ApplicationNodeInternal.h"
 #include "core/ApplicationNodeBase.h"
+#include "core/ApplicationNodeInternal.h"
 
 namespace viscom {
 
@@ -31,7 +31,7 @@ namespace viscom {
         virtual void DrawFrame(FrameBuffer& fbo) override;
         virtual void CleanUp() override;
 
-        void setCurrentTexture(std::shared_ptr<Texture> tex) { texture_ = tex; };
+        void setCurrentTexture(GLuint tex) { texture_ = tex; };
 
     private:
         /** The GPU program used for drawing. */
@@ -39,7 +39,7 @@ namespace viscom {
         /** Texture location */
         GLint slideTextureLoc_;
         /** Holds the current texture to be rendered*/
-        std::shared_ptr<Texture> texture_;
+        GLuint texture_;
         /** Holds the geometry which gets textured with a slide*/
         std::shared_ptr<FullscreenQuad> quad_;
     };

@@ -7,22 +7,20 @@
 */
 
 #include "MasterNode.h"
-#include <imgui.h>
 #include "Filesystem.h"
+#include <imgui.h>
 #include <windows.h>
 
 
 namespace viscom {
 
-    MasterNode::MasterNode(ApplicationNodeInternal* appNode)
-        : ApplicationNodeImplementation{appNode}
-          , current_slide_(0)
-          , numberOfSlides_(0)
-          , inputDir_("D:/dev")
-          , inputDirectorySelected_(false)
-#ifdef VISCOM_USE_SGCT
-	, initialized_(false)
-#endif
+    MasterNode::MasterNode(ApplicationNodeInternal* appNode) :
+        ApplicationNodeImplementation{appNode},
+        current_slide_(0),
+        numberOfSlides_(0),
+        inputDir_("D:/dev"),
+        inputDirectorySelected_(false),
+        allTexturesInitialized_(false)
     {
     }
 
@@ -83,22 +81,28 @@ namespace viscom {
             texture_slides_.push_back(texture);
         }
         numberOfSlides_ = texture_slides_.size();
+
+        allTexturesInitialized_ = false;
+        presentationInitialized_.resize(0);
+        clientReceivedTexture_.resize(0);
+
 #ifdef VISCOM_USE_SGCT
-        clientReceivedTexture_ = std::vector<std::vector<bool>>(6,std::vector<bool>(numberOfSlides_,false));
+        presentationInitialized_.resize(sgct_core::ClusterManager::instance()->getNumberOfNodes(), false);
+        presentationInitialized_[sgct_core::ClusterManager::instance()->getThisNodeId()] = true;
+        clientReceivedTexture_.resize(sgct_core::ClusterManager::instance()->getNumberOfNodes(), std::vector<bool>(numberOfSlides_, false));
+        clientReceivedTexture_[sgct_core::ClusterManager::instance()->getThisNodeId()] = std::vector<bool>(numberOfSlides_, true);
+#endif
+
         for (auto clientId = 0; clientId < 6; ++clientId)
             {
                 for (auto i = 0; i < numberOfSlides_; ++i)
                 {
                     if (!clientReceivedTexture_[clientId][i])
                     {
-                        const auto tex = texture_slides_[i];
-                        MasterMessage mm(numberOfSlides_, i, tex->getDescriptor());
-                        sgct::Engine::instance()->transferDataToNode(tex->data(), tex->getImageData().size(), PackageID::Data, clientId);
-                        sgct::Engine::instance()->transferDataToNode(&mm, sizeof(MasterMessage), PackageID::Descriptor, clientId);
+                        TransferSlide(i, clientId);
                     }
                 }
             }
-#endif
     }
 
     bool MasterNode::KeyboardCallback(int key, int scancode, int action, int mods)
@@ -112,7 +116,7 @@ namespace viscom {
                 if (current_slide_ - 1 >= 0) {
                     current_slide_--;
                 }
-                setCurrentTexture(texture_slides_[current_slide_]);
+                setCurrentTexture(texture_slides_[current_slide_]->getTextureId());
                 return true;
             }
 
@@ -121,7 +125,7 @@ namespace viscom {
                 if (current_slide_ + 1 < numberOfSlides_) {
                     current_slide_++;
                 }
-                setCurrentTexture(texture_slides_[current_slide_]);
+                setCurrentTexture(texture_slides_[current_slide_]->getTextureId());
                 return true;
             }
         default: return false;
@@ -139,14 +143,13 @@ namespace viscom {
             do {
                 if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && !returnFiles)
                 {
-                    content.push_back(std::string(data.cFileName));
+                    content.emplace_back(data.cFileName);
                 } 
                 
                 if(returnFiles)
                 {
                     const auto file = dir + std::string("/").append(data.cFileName);
-                    if(Resource::IsResource(file, GetApplication()))
-                        content.push_back(file);
+                    if(utils::file_exists(file)) content.push_back(file);
                 }
             } while (FindNextFile(hFind, &data) != 0);
             FindClose(hFind);
@@ -154,47 +157,69 @@ namespace viscom {
         return content;
     }
 #ifdef VISCOM_USE_SGCT
-	bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
-	{
-		const auto state = *reinterpret_cast<ClientState*>(receivedData);
-		LOG(INFO) << "client " << state.clientId << " synced texture " << state.textureIndex;
-		clientReceivedTexture_[state.clientId - 1][state.textureIndex] = true;
-
-
-
-		bool initialized = true;
-		for (auto& vec : clientReceivedTexture_)
-		{
-			for (auto& isInitialized : vec)
-			{
-				initialized = initialized && isInitialized;
-				if (initialized) {
-					initialized_ = true;
-					setCurrentTexture(getCurrentSlide());
-				}
-			}
-		}
-
-        if (!initialized_)
-        {
-            for (auto clientId = 0; clientId < 6; ++clientId)
-            {
-                for (auto i = 0; i < numberOfSlides_; ++i)
-                {
-                    if (!clientReceivedTexture_[clientId][i])
-                    {
-                        const auto tex = texture_slides_[i];
-                        MasterMessage mm(numberOfSlides_, i, tex->getDescriptor());
-                        sgct::Engine::instance()->transferDataToNode(tex->data(), tex->getImageData().size(), PackageID::Data, clientId);
-                        sgct::Engine::instance()->transferDataToNode(&mm, sizeof(MasterMessage), PackageID::Descriptor, clientId);
-                    }
-                }
-            }
+    bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
+    {
+        const auto state = *reinterpret_cast<ClientState*>(receivedData);
+        if (state.numberOfSlides >= 0) {
+            LOG(INFO) << "client " << state.clientId << " synced presentation " << state.numberOfSlides << " slides.";
+            presentationInitialized_[state.clientId] = true;
+        }
+        else {
+            LOG(INFO) << "client " << state.clientId << " synced texture " << state.textureIndex;
+            clientReceivedTexture_[state.clientId][state.textureIndex] = true;
         }
 
-		return true;
-	}
 
+        // bool initialized = true;
+        // for (auto& vec : clientReceivedTexture_)
+        // {
+        //     for (auto& isInitialized : vec)
+        //     {
+        //         initialized = initialized && isInitialized;
+        //         if (initialized) {
+        //             initialized_ = true;
+        //             setCurrentTexture(getCurrentSlide()->getTextureId());
+        //         }
+        //     }
+        // }
+        // 
+        // if (!initialized_)
+        // {
+        //     for (auto clientId = 0; clientId < 6; ++clientId)
+        //     {
+        //         for (auto i = 0; i < numberOfSlides_; ++i)
+        //         {
+        //             if (!clientReceivedTexture_[clientId][i])
+        //             {
+        //                 TransferSlide(i, clientId);
+        //             }
+        //         }
+        //     }
+        // }
+
+        return true;
+    }
+
+    void MasterNode::TransferSlide(std::size_t slideID, std::size_t clientId) const
+    {
+        const auto& tex = texture_slides_[slideID];
+        SlideTexDescriptor slideTexDesc{ tex->getDescriptor() };
+        auto dim = tex->getDimensions();
+        slideTexDesc.width_ = dim.x;
+        slideTexDesc.height_ = dim.y;
+
+        std::vector<std::uint8_t> textureData;
+        GetTextureData(textureData, slideTexDesc, tex->getTextureId());
+
+        TextureHeaderMessage mm(numberOfSlides_, slideID, slideTexDesc);
+
+        std::vector<std::uint8_t> messageData;
+        messageData.resize(sizeof(TextureHeaderMessage) + textureData.size());
+        memcpy(messageData.data(), &mm, sizeof(TextureHeaderMessage));
+        memcpy(messageData.data() + sizeof(TextureHeaderMessage), textureData.data(), textureData.size());
+        sgct::Engine::instance()->transferDataToNode(messageData.data(), static_cast<int>(messageData.size()), PackageID::TextureData, clientId);
+        // sgct::Engine::instance()->transferDataToNode(&mm, sizeof(MasterMessage), PackageID::Descriptor, clientId);
+    }
 
     void MasterNode::EncodeData()
     {
@@ -208,4 +233,61 @@ namespace viscom {
         sharedIndex_.setVal(current_slide_);
     }
 #endif
+
+    void MasterNode::GetTextureData(std::vector<uint8_t>& data, const SlideTexDescriptor& desc, GLuint textureId) const
+    {
+        std::size_t size = desc.width_ * desc.height_ * desc.desc_.bytesPP_;
+        data.resize(size);
+        assert(data.size() != 0);
+
+        GLuint pbo = 0;
+        glGenBuffers(1, &pbo);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, pbo);
+        glBufferData(GL_PIXEL_PACK_BUFFER, size, nullptr, GL_STREAM_READ);
+
+        glBindTexture(GL_TEXTURE_2D, textureId);
+        glGetTexImage(GL_TEXTURE_2D, 0, desc.desc_.format_, desc.desc_.type_, nullptr);
+
+        glMemoryBarrier(GL_ALL_BARRIER_BITS);
+        auto gpuMem = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY);
+        if (gpuMem) {
+            memcpy(data.data(), gpuMem, size);
+            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+        }
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+
+        glDeleteBuffers(1, &pbo);
+    }
+
+    void MasterNode::UpdateFrame(double currentTime, double elapsedTime)
+    {
+        ApplicationNodeImplementation::UpdateFrame(currentTime, elapsedTime);
+
+        if (!allTexturesInitialized_) {
+            bool sentMessage = false;
+            // try initialize presentation.
+            for (std::size_t i = 0; i < presentationInitialized_.size(); ++i) {
+                if (sentMessage || presentationInitialized_[i]) continue;
+
+                sgct::Engine::instance()->transferDataToNode(&numberOfSlides_, sizeof(std::size_t), PackageID::PresentationData, i);
+                sentMessage = true;
+                return;
+            }
+
+            for (std::size_t i = 0; i < clientReceivedTexture_.size(); ++i) {
+                for (std::size_t iT = 0; iT < clientReceivedTexture_[i].size(); ++iT) {
+                    if (sentMessage || clientReceivedTexture_[i][iT]) continue;
+
+                    TransferSlide(iT, i);
+                    sentMessage = true;
+                    return;
+                }
+            }
+
+            if (!sentMessage) allTexturesInitialized_ = true;
+        }
+    }
+
 }
