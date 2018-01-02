@@ -93,7 +93,7 @@ namespace viscom {
         clientReceivedTexture_[sgct_core::ClusterManager::instance()->getThisNodeId()] = std::vector<bool>(numberOfSlides_, true);
 #endif
 
-        for (auto clientId = 0; clientId < 6; ++clientId)
+        for (auto clientId = 0; clientId < clientReceivedTexture_.size(); ++clientId)
             {
                 for (auto i = 0; i < numberOfSlides_; ++i)
                 {
@@ -119,7 +119,7 @@ namespace viscom {
                 setCurrentTexture(texture_slides_[current_slide_]->getTextureId());
                 return true;
             }
-
+            break;
         case GLFW_KEY_RIGHT:
             if (action == GLFW_REPEAT || action == GLFW_PRESS) {
                 if (current_slide_ + 1 < numberOfSlides_) {
@@ -128,8 +128,11 @@ namespace viscom {
                 setCurrentTexture(texture_slides_[current_slide_]->getTextureId());
                 return true;
             }
+            break;
         default: return false;
         }
+
+        return false;
     }
 
     std::vector<std::string> MasterNode::getDirectoryContent(const std::string& dir, const bool returnFiles) const
@@ -286,7 +289,13 @@ namespace viscom {
                 }
             }
 
-            if (!sentMessage) allTexturesInitialized_ = true;
+            if (!sentMessage) {
+                allTexturesInitialized_ = true;
+                if (!texture_slides_.empty()) {
+                    current_slide_ = 0;
+                    setCurrentTexture(texture_slides_[current_slide_]->getTextureId());
+                }
+            }
         }
     }
 

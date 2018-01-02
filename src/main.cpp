@@ -32,9 +32,9 @@ int main(int argc, char** argv)
 
     LOG(INFO) << "Log created.";
     viscom::FWConfiguration config;
-    config.resourceSearchPaths_.push_back("");
     if (argc > 1) config = viscom::LoadConfiguration(argv[1]);
     else config = viscom::LoadConfiguration("framework.cfg");
+    config.resourceSearchPaths_.emplace_back("");
     auto appNode = Application_Init(config);
 
     // Main loop
