@@ -70,6 +70,7 @@ namespace viscom {
     }
 
     void MasterNode::loadSlides() {
+        texture_slides_.clear();
         auto slideNumber = 1;
         std::vector<std::string> slides = getFiles(inputDir_);
         std::sort(slides.begin(), slides.end(), viscom::comparePaths);
@@ -126,6 +127,12 @@ namespace viscom {
                     current_slide_++;
                 }
                 setCurrentTexture(texture_slides_[current_slide_]->getTextureId());
+                return true;
+            }
+            break;
+        case GLFW_KEY_L:
+            if (action == GLFW_PRESS && mods == GLFW_MOD_CONTROL) {
+                inputDirectorySelected_ = false;
                 return true;
             }
             break;
