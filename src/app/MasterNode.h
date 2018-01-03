@@ -30,11 +30,12 @@ namespace viscom {
 
     struct SlideTexDescriptor
     {
+        SlideTexDescriptor() noexcept : desc_{ 0, 0, 0, 0 } {}
         SlideTexDescriptor(const TextureDescriptor& desc) noexcept : desc_{ desc } {}
 
         TextureDescriptor desc_;
-        std::size_t width_;
-        std::size_t height_;
+        std::size_t width_ = 0;
+        std::size_t height_ = 0;
     };
 
     struct TextureHeaderMessage
@@ -88,5 +89,6 @@ namespace viscom {
         std::string inputDir_;
         /**/
         bool inputDirectorySelected_;
+        bool animationChanged_ = false;
     };
 }

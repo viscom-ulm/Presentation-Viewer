@@ -9,6 +9,7 @@
 #include "MasterNode.h"
 #include "Filesystem.h"
 #include <imgui.h>
+#include <iostream>
 #include <windows.h>
 
 
@@ -94,16 +95,7 @@ namespace viscom {
         clientReceivedTexture_[sgct_core::ClusterManager::instance()->getThisNodeId()] = std::vector<bool>(numberOfSlides_, true);
 #endif
 
-        for (auto clientId = 0; clientId < clientReceivedTexture_.size(); ++clientId)
-            {
-                for (auto i = 0; i < numberOfSlides_; ++i)
-                {
-                    if (!clientReceivedTexture_[clientId][i])
-                    {
-                        TransferSlide(i, clientId);
-                    }
-                }
-            }
+        animationChanged_ = true;
     }
 
     bool MasterNode::KeyboardCallback(int key, int scancode, int action, int mods)
@@ -169,43 +161,30 @@ namespace viscom {
 #ifdef VISCOM_USE_SGCT
     bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
     {
-        const auto state = *reinterpret_cast<ClientState*>(receivedData);
-        if (state.numberOfSlides >= 0) {
-            LOG(INFO) << "client " << state.clientId << " synced presentation " << state.numberOfSlides << " slides.";
-            presentationInitialized_[state.clientId] = true;
+        switch (PackageID(packageID))
+        {
+        case 0:
+        {
+            const auto state = *reinterpret_cast<ClientState*>(receivedData);
+            if (state.numberOfSlides >= 0) {
+                LOG(INFO) << "client " << state.clientId << " synced presentation " << state.numberOfSlides << " slides.";
+                presentationInitialized_[state.clientId] = true;
+            } else {
+                LOG(INFO) << "client " << state.clientId << " synced texture " << state.textureIndex;
+                clientReceivedTexture_[state.clientId][state.textureIndex] = true;
+            }
+        } break;
+        case 1:
+        {
+            if (!presentationInitialized_.empty()) {
+                const auto state = *reinterpret_cast<ClientState*>(receivedData);
+                presentationInitialized_[state.clientId] = false;
+                for (auto& texInit : clientReceivedTexture_[state.clientId]) texInit = false;
+                allTexturesInitialized_ = false;
+            }
+        } break;
+        default : break;
         }
-        else {
-            LOG(INFO) << "client " << state.clientId << " synced texture " << state.textureIndex;
-            clientReceivedTexture_[state.clientId][state.textureIndex] = true;
-        }
-
-
-        // bool initialized = true;
-        // for (auto& vec : clientReceivedTexture_)
-        // {
-        //     for (auto& isInitialized : vec)
-        //     {
-        //         initialized = initialized && isInitialized;
-        //         if (initialized) {
-        //             initialized_ = true;
-        //             setCurrentTexture(getCurrentSlide()->getTextureId());
-        //         }
-        //     }
-        // }
-        // 
-        // if (!initialized_)
-        // {
-        //     for (auto clientId = 0; clientId < 6; ++clientId)
-        //     {
-        //         for (auto i = 0; i < numberOfSlides_; ++i)
-        //         {
-        //             if (!clientReceivedTexture_[clientId][i])
-        //             {
-        //                 TransferSlide(i, clientId);
-        //             }
-        //         }
-        //     }
-        // }
 
         return true;
     }
@@ -228,7 +207,6 @@ namespace viscom {
         memcpy(messageData.data(), &mm, sizeof(TextureHeaderMessage));
         memcpy(messageData.data() + sizeof(TextureHeaderMessage), textureData.data(), textureData.size());
         sgct::Engine::instance()->transferDataToNode(messageData.data(), static_cast<int>(messageData.size()), PackageID::TextureData, clientId);
-        // sgct::Engine::instance()->transferDataToNode(&mm, sizeof(MasterMessage), PackageID::Descriptor, clientId);
     }
 
     void MasterNode::EncodeData()
@@ -281,7 +259,8 @@ namespace viscom {
             for (std::size_t i = 0; i < presentationInitialized_.size(); ++i) {
                 if (sentMessage || presentationInitialized_[i]) continue;
 
-                sgct::Engine::instance()->transferDataToNode(&numberOfSlides_, sizeof(std::size_t), PackageID::PresentationData, i);
+                // i-1 works only if the first node is the master!!
+                sgct::Engine::instance()->transferDataToNode(&numberOfSlides_, sizeof(std::size_t), PackageID::PresentationData, i - 1);
                 sentMessage = true;
                 return;
             }
@@ -290,7 +269,8 @@ namespace viscom {
                 for (std::size_t iT = 0; iT < clientReceivedTexture_[i].size(); ++iT) {
                     if (sentMessage || clientReceivedTexture_[i][iT]) continue;
 
-                    TransferSlide(iT, i);
+                    // i-1 works only if the first node is the master!!
+                    TransferSlide(iT, i - 1);
                     sentMessage = true;
                     return;
                 }
@@ -298,9 +278,10 @@ namespace viscom {
 
             if (!sentMessage) {
                 allTexturesInitialized_ = true;
-                if (!texture_slides_.empty()) {
+                if (!texture_slides_.empty() && animationChanged_) {
                     current_slide_ = 0;
                     setCurrentTexture(texture_slides_[current_slide_]->getTextureId());
+                    animationChanged_ = false;
                 }
             }
         }

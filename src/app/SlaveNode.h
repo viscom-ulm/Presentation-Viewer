@@ -10,6 +10,7 @@
 
 #include "MasterNode.h"
 #include "core/SlaveNodeHelper.h"
+#include <mutex>
 
 namespace viscom {
 
@@ -22,8 +23,9 @@ namespace viscom {
         void Draw2D(FrameBuffer& fbo) override;
         
 
-        void addTexture(int index, const SlideTexDescriptor& descriptor, const std::vector<std::uint8_t>& data);
+        void addTexture(int index);
         bool isSynced(int index) const { return hasTextures_[index]; };
+        void HandleSlideTransfer();
         virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
         virtual void UpdateSyncedInfo() override;
         virtual void DecodeData() override;
@@ -37,10 +39,10 @@ namespace viscom {
         // std::size_t number_of_slides_;
         std::vector<GLuint> textureIds_;
         std::vector<bool> hasTextures_;
-        // std::vector<std::uint8_t> data_;
-        // MasterMessage masterMessage_;
-        // bool hasData_;
-        // bool hasDescriptor_;
-        // std::vector<std::pair<SlideTexDescriptor, std::vector<std::uint8_t>>> buffered_image_data_;
+
+        std::mutex slideTransferMutex_;
+        bool resetPresentation_ = false;
+        std::vector<std::size_t> resetTextures_;
+        std::vector<std::pair<SlideTexDescriptor, std::vector<std::uint8_t>>> buffered_image_data_;
     };
 }
