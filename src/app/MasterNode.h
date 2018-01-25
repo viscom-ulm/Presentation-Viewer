@@ -13,6 +13,8 @@
 #include "core/TuioInputWrapper.h"
 #endif
 
+#include "core/open_gl.h"
+
 namespace viscom {
 
     enum PackageID : int {
