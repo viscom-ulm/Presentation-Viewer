@@ -26,7 +26,7 @@ namespace viscom {
         void addTexture(int index);
         bool isSynced(int index) const { return hasTextures_[index]; };
         void HandleSlideTransfer();
-        virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
+        virtual bool DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID) override;
         virtual void UpdateSyncedInfo() override;
         virtual void DecodeData() override;
 

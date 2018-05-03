@@ -65,7 +65,7 @@ namespace viscom {
 #endif
     }
 
-    bool SlaveNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
+    bool SlaveNode::DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID)
     {
         std::lock_guard<std::mutex> slideTransferLock{ slideTransferMutex_ };
         switch (PackageID(packageID)) 
@@ -142,17 +142,17 @@ namespace viscom {
         std::unique_lock<std::mutex> slideTransferLock{ slideTransferMutex_ };
         if (slideTransferLock.owns_lock()) HandleSlideTransfer();
 
+#ifdef VISCOM_USE_SGCT
         current_slide_ = sharedIndex_.getVal();
         if (hasTextures_.size() <= current_slide_) {
             if (hasTextures_.empty()) {
                 // send command to resend all data.
-#ifdef VISCOM_USE_SGCT
                 ClientState clientState(static_cast<int>(sgct_core::ClusterManager::instance()->getThisNodeId()));
                 sgct::Engine::instance()->transferDataToNode(&clientState, sizeof(ClientState), 1, 0);
-#endif
             }
         } else if (hasTextures_[current_slide_]) {
             setCurrentTexture(textureIds_[current_slide_]);
         }
+#endif
     }
 }

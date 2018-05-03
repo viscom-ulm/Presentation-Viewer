@@ -10,7 +10,7 @@
 #include "Filesystem.h"
 #include <imgui.h>
 #include <iostream>
-#include <windows.h>
+#include <experimental/filesystem>
 
 
 namespace viscom {
@@ -34,28 +34,26 @@ namespace viscom {
 
     void MasterNode::Draw2D(FrameBuffer& fbo)
     {
-        fbo.DrawToFBO([&]() {
-            
-            
+        std::vector<std::string> supportedDriveLetters = { "A:/", "B:/", "C:/", "D:/", "E:/", "F:/", "G:/", "H:/" };
+        namespace fs = std::experimental::filesystem;
+        fbo.DrawToFBO([&]() {            
             ImGui::SetNextWindowPos(ImVec2(700, 60), ImGuiSetCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
             if (!inputDirectorySelected_ && ImGui::Begin("Select input directory", nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_ShowBorders))
             {
                 ImGui::Text(inputDir_.data());
+                for (const auto& dl : supportedDriveLetters) {
+                    if (fs::is_directory(dl)) {
+                        bool selected = false;
+                        ImGui::Selectable(dl.c_str(), &selected);
+                        if (selected) inputDir_ = dl;
+                    }
+                }
                 for(auto &path : getDirectoryContent(inputDir_))
                 {
                     bool selected = false;
                     ImGui::Selectable(path.data(), &selected);
-                    if(selected)
-                    {
-                        if(path == "..")
-                        {
-                            removeLastDir(inputDir_);
-                        } else
-                        {
-                            inputDir_.append("/").append(path);
-                        }
-                    }
+                    if(selected) inputDir_ = fs::canonical(fs::path(inputDir_) / path).string();
                 }
 
                 inputDirectorySelected_ = ImGui::Button("Select Folder", ImVec2(50, 20));
@@ -93,9 +91,12 @@ namespace viscom {
         presentationInitialized_[sgct_core::ClusterManager::instance()->getThisNodeId()] = true;
         clientReceivedTexture_.resize(sgct_core::ClusterManager::instance()->getNumberOfNodes(), std::vector<bool>(numberOfSlides_, false));
         clientReceivedTexture_[sgct_core::ClusterManager::instance()->getThisNodeId()] = std::vector<bool>(numberOfSlides_, true);
+#else
+        setCurrentTexture(texture_slides_[current_slide_]->getTextureId());
 #endif
 
         animationChanged_ = true;
+
     }
 
     bool MasterNode::KeyboardCallback(int key, int scancode, int action, int mods)
@@ -136,30 +137,22 @@ namespace viscom {
 
     std::vector<std::string> MasterNode::getDirectoryContent(const std::string& dir, const bool returnFiles) const
     {
+        namespace fs = std::experimental::filesystem;
+
         std::vector<std::string> content;
-        std::string path = dir;
-        path.append("\\*");
-        WIN32_FIND_DATA data;
-        HANDLE hFind;
-        if ((hFind = FindFirstFile(path.c_str(), &data)) != INVALID_HANDLE_VALUE) {
-            do {
-                if (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY && !returnFiles)
-                {
-                    content.emplace_back(data.cFileName);
-                } 
-                
-                if(returnFiles)
-                {
-                    const auto file = dir + std::string("/").append(data.cFileName);
-                    if(utils::file_exists(file)) content.push_back(file);
-                }
-            } while (FindNextFile(hFind, &data) != 0);
-            FindClose(hFind);
+        if (!returnFiles) content.emplace_back("..");
+
+        // apparently stb image seems to have problems loading jpg files...
+        auto checkImageFile = [](const fs::path& p) { return (p.extension().string() == ".png"); }; // || p.extension().string() == ".jpg" || p.extension().string() == ".jpeg"); };
+
+        for (auto& p : fs::directory_iterator(dir)) {
+            if (returnFiles && fs::is_regular_file(p) && checkImageFile(p)) content.push_back(fs::absolute(p, dir).string());
+            else if (!returnFiles && fs::is_directory(p)) content.push_back(p.path().filename().string());
         }
         return content;
     }
 #ifdef VISCOM_USE_SGCT
-    bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID)
+    bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID)
     {
         switch (PackageID(packageID))
         {
@@ -253,6 +246,7 @@ namespace viscom {
     {
         ApplicationNodeImplementation::UpdateFrame(currentTime, elapsedTime);
 
+#ifdef VISCOM_USE_SGCT
         if (!allTexturesInitialized_) {
             bool sentMessage = false;
             // try initialize presentation.
@@ -285,6 +279,7 @@ namespace viscom {
                 }
             }
         }
+#endif
     }
 
 }

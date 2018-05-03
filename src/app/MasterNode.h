@@ -65,7 +65,7 @@ namespace viscom {
 #ifdef VISCOM_USE_SGCT
         virtual void EncodeData() override;
         virtual void PreSync() override;
-        virtual bool DataTransferCallback(void* receivedData, int receivedLength, int packageID, int clientID) override;
+        virtual bool DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID) override;
 #endif
     private:
 #ifdef VISCOM_USE_SGCT

@@ -39,7 +39,7 @@ namespace viscom {
         /** Texture location */
         GLint slideTextureLoc_;
         /** Holds the current texture to be rendered*/
-        GLuint texture_;
+        GLuint texture_ = 0;
         /** Holds the geometry which gets textured with a slide*/
         std::shared_ptr<FullscreenQuad> quad_;
     };

@@ -62,13 +62,4 @@ namespace viscom
 
         return std::lexicographical_compare(it1, s1.end(), it2, s2.end());
     }
-
-    void removeLastDir(std::string& path)
-    {
-        while (path.back() != '/')
-        {
-            path.pop_back();
-        }
-        path.pop_back();
-    }
 }
