@@ -23,9 +23,9 @@ namespace viscom {
         void Draw2D(FrameBuffer& fbo) override;
         
 
-        void addTexture(int index);
-        bool isSynced(int index) const { return hasTextures_[index]; };
-        void HandleSlideTransfer();
+        void RequestSlides();
+        std::vector<std::string> DecodeSlideNames(const void* receivedData, int receivedLength);
+
         virtual bool DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID) override;
         virtual void UpdateSyncedInfo() override;
         virtual void DecodeData() override;
@@ -35,14 +35,5 @@ namespace viscom {
         /** Holds the data shared by the master. */
         sgct::SharedInt32 sharedIndex_;
 #endif
-        std::size_t current_slide_;
-        // std::size_t number_of_slides_;
-        std::vector<GLuint> textureIds_;
-        std::vector<bool> hasTextures_;
-
-        std::mutex slideTransferMutex_;
-        bool resetPresentation_ = false;
-        std::vector<std::size_t> resetTextures_;
-        std::vector<std::pair<SlideTexDescriptor, std::vector<std::uint8_t>>> buffered_image_data_;
     };
 }

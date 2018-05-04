@@ -60,7 +60,6 @@ namespace viscom {
 
         /** iterates over resource/slides folder and loads textures */
         void loadSlides();
-        std::shared_ptr<Texture> getCurrentSlide() const { return texture_slides_[current_slide_]; }
 
 #ifdef VISCOM_USE_SGCT
         virtual void EncodeData() override;
@@ -71,22 +70,9 @@ namespace viscom {
 #ifdef VISCOM_USE_SGCT
         sgct::SharedInt32 sharedIndex_;
 #endif
-
-        std::vector<std::vector<bool>> clientReceivedTexture_;
-        std::vector<bool> presentationInitialized_;
-        bool allTexturesInitialized_;
-        void TransferSlide(std::size_t slideID, std::size_t clientId) const;
-        void GetTextureData(std::vector<uint8_t>& data, const SlideTexDescriptor& desc, GLuint textureId) const;
-
-        /** Holds the index of the current displayed slide */
-        int current_slide_;
-        /** Holds the number of slides */
-        size_t numberOfSlides_;
-        /** The vector holds all available slide textures */
-        std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
         /* Holds the input directory containing slides*/
         std::string inputDir_;
-        /**/
+
         bool inputDirectorySelected_;
         bool animationChanged_ = false;
     };

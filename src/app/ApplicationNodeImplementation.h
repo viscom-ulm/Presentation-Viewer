@@ -15,6 +15,11 @@ namespace viscom {
 
     class MeshRenderable;
 
+    enum class SlideMessages : std::uint16_t {
+        RequestSlideNames,
+        SlideNamesTransfer
+    };
+
     class ApplicationNodeImplementation : public ApplicationNodeBase
     {
     public:
@@ -31,15 +36,23 @@ namespace viscom {
         virtual void DrawFrame(FrameBuffer& fbo) override;
         virtual void CleanUp() override;
 
-        void setCurrentTexture(GLuint tex) { texture_ = tex; };
+        void LoadTextures(const std::vector<std::string>& textureNames, bool resetSlides = true);
+        void SetCurrentSlide(int slide) { current_slide_ = std::max(slide, static_cast<int>(texture_slides_.size()) - 1); };
+        int GetCurrentSlide() const { return current_slide_; }
+        void NextSlide();
+        void PreviousSlide();
+
+        std::vector<std::uint8_t> GetTextureSlideNameData() const;
 
     private:
         /** The GPU program used for drawing. */
         const GPUProgram *slideProgram_;
         /** Texture location */
         GLint slideTextureLoc_;
-        /** Holds the current texture to be rendered*/
-        GLuint texture_ = 0;
+        /** Holds the index of the current displayed slide */
+        int current_slide_ = -1;
+        /** The vector holds all available slide textures */
+        std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
         /** Holds the geometry which gets textured with a slide*/
         std::shared_ptr<FullscreenQuad> quad_;
     };

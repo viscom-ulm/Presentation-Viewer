@@ -13,7 +13,7 @@
 namespace viscom {
 
     SlaveNode::SlaveNode(ApplicationNodeInternal* appNode)
-        : SlaveNodeInternal{appNode}, current_slide_(0)
+        : SlaveNodeInternal{appNode}
     {
     }
 
@@ -34,28 +34,7 @@ namespace viscom {
         SlaveNodeInternal::Draw2D(fbo);
     }
 
-    SlaveNode::~SlaveNode()
-    {
-        glDeleteTextures(static_cast<GLsizei>(textureIds_.size()), textureIds_.data());
-    }
-
-    void SlaveNode::addTexture(int index)
-    {
-        if (buffered_image_data_[index].second.empty()) return;
-        if (!isSynced(index))
-        {
-            auto& descriptor = buffered_image_data_[index].first;
-            auto& data = buffered_image_data_[index].second;
-            glBindTexture(GL_TEXTURE_2D, textureIds_[index]);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexImage2D(GL_TEXTURE_2D, 0, descriptor.desc_.internalFormat_, static_cast<GLsizei>(descriptor.width_), static_cast<GLsizei>(descriptor.height_), 0, descriptor.desc_.format_, descriptor.desc_.type_, data.data());
-
-            hasTextures_[index] = true;
-        }
-    }
+    SlaveNode::~SlaveNode() = default;
 
     void SlaveNode::DecodeData()
     {
@@ -67,92 +46,62 @@ namespace viscom {
 
     bool SlaveNode::DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID)
     {
-        std::lock_guard<std::mutex> slideTransferLock{ slideTransferMutex_ };
-        switch (PackageID(packageID)) 
+        switch (static_cast<SlideMessages>(packageID))
         {
-        case PresentationData:
-        {
-            buffered_image_data_.resize(*reinterpret_cast<std::size_t*>(receivedData));
-            resetPresentation_ = true;
-        } break;
-        case TextureData:
-        {
-            if (hasTextures_.empty()) {
-                // send command to resend all data.
-#ifdef VISCOM_USE_SGCT
-                ClientState clientState(static_cast<int>(sgct_core::ClusterManager::instance()->getThisNodeId()));
-                sgct::Engine::instance()->transferDataToNode(&clientState, sizeof(ClientState), 1, 0);
-#endif
-                break;
-            }
-
-            auto header = reinterpret_cast<TextureHeaderMessage*>(receivedData);
-            if (std::find(resetTextures_.begin(), resetTextures_.end(), header->index) != resetTextures_.end()) break;
-
-            buffered_image_data_[header->index].first = header->descriptor;
-            buffered_image_data_[header->index].second.resize(header->descriptor.width_ * header->descriptor.height_ * header->descriptor.desc_.bytesPP_);
-
-            assert(receivedLength == sizeof(TextureHeaderMessage) + buffered_image_data_[header->index].second.size());
-            memcpy(buffered_image_data_[header->index].second.data(),
-                reinterpret_cast<std::uint8_t*>(receivedData) + sizeof(TextureHeaderMessage),
-                buffered_image_data_[header->index].second.size());
-            resetTextures_.push_back(header->index);
-        } break;
+        case SlideMessages::RequestSlideNames:
+            LoadTextures(DecodeSlideNames(receivedData, receivedLength));
+            break;
         }
         return true;
     }
 
-    void SlaveNode::HandleSlideTransfer()
+    void SlaveNode::RequestSlides()
     {
-        if (resetPresentation_) {
-            glDeleteTextures(static_cast<GLsizei>(textureIds_.size()), textureIds_.data());
-            textureIds_.resize(0);
-            hasTextures_.resize(0);
-            textureIds_.resize(buffered_image_data_.size(), 0);
-            hasTextures_.resize(textureIds_.size(), false);
-            glGenTextures(static_cast<GLsizei>(textureIds_.size()), textureIds_.data());
+        GetApplication()->TransferDataToNode(nullptr, 0, static_cast<std::uint16_t>(SlideMessages::RequestSlideNames), 0);
+    }
 
-#ifdef VISCOM_USE_SGCT
-            ClientState clientState(static_cast<int>(sgct_core::ClusterManager::instance()->getThisNodeId()));
-            clientState.numberOfSlides = static_cast<int>(textureIds_.size());
-            sgct::Engine::instance()->transferDataToNode(&clientState, sizeof(ClientState), 0, 0);
-#endif
-            resetPresentation_ = false;
-            return;
+    inline void CheckSlideNameLength(std::size_t receivedLength, std::size_t sizeToRead) {
+        if (receivedLength < sizeToRead) {
+            LOG(FATAL) << "Encoded slide names are corrupt.";
+            throw std::runtime_error("Encoded slide names are corrupt.");
+        }
+    }
+    std::vector<std::string> SlaveNode::DecodeSlideNames(const void* receivedData, int receivedLength)
+    {
+        std::size_t restLength = receivedLength;
+        CheckSlideNameLength(restLength, sizeof(std::size_t));
+
+        std::vector<std::string> slideNames;
+        auto dataPtr = reinterpret_cast<const std::uint8_t*>(receivedData);
+        slideNames.resize(reinterpret_cast<const std::size_t*>(dataPtr)[0]);
+        dataPtr += sizeof(std::size_t);
+        restLength -= sizeof(std::size_t);
+
+        for (auto& slideName : slideNames) {
+            CheckSlideNameLength(restLength, sizeof(std::size_t));
+
+            slideName.resize(reinterpret_cast<const std::size_t*>(dataPtr)[0]);
+            dataPtr += sizeof(std::size_t);
+            restLength -= sizeof(std::size_t);
+
+            CheckSlideNameLength(restLength, slideName.size());
+            memcpy(slideName.data(), dataPtr, slideName.size());
+            dataPtr += slideName.size();
+            restLength -= slideName.size();
         }
 
-        while (!resetTextures_.empty()) {
-            auto resetTexture = resetTextures_.back();
-            resetTextures_.pop_back();
-
-            addTexture(static_cast<int>(resetTexture));
-
-#ifdef VISCOM_USE_SGCT
-            ClientState clientState(static_cast<int>(sgct_core::ClusterManager::instance()->getThisNodeId()));
-            clientState.textureIndex = static_cast<int>(resetTexture);
-            sgct::Engine::instance()->transferDataToNode(&clientState, sizeof(ClientState), 0, 0);
-#endif
-        }
+        return slideNames;
     }
 
     void SlaveNode::UpdateSyncedInfo()
     {
         SlaveNodeInternal::UpdateSyncedInfo();
 
-        std::unique_lock<std::mutex> slideTransferLock{ slideTransferMutex_ };
-        if (slideTransferLock.owns_lock()) HandleSlideTransfer();
-
 #ifdef VISCOM_USE_SGCT
-        current_slide_ = sharedIndex_.getVal();
-        if (hasTextures_.size() <= current_slide_) {
-            if (hasTextures_.empty()) {
-                // send command to resend all data.
-                ClientState clientState(static_cast<int>(sgct_core::ClusterManager::instance()->getThisNodeId()));
-                sgct::Engine::instance()->transferDataToNode(&clientState, sizeof(ClientState), 1, 0);
-            }
-        } else if (hasTextures_[current_slide_]) {
-            setCurrentTexture(textureIds_[current_slide_]);
-        }
+        int currentSlideFromMaster = sharedIndex_.getVal();
+        SetCurrentSlide(currentSlideFromMaster);
+
+        if (currentSlideFromMaster != GetCurrentSlide()) RequestSlides();
 #endif
     }
 }
