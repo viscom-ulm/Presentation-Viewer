@@ -17,7 +17,8 @@ namespace viscom {
 
     enum class SlideMessages : std::uint16_t {
         RequestSlideNames,
-        SlideNamesTransfer
+        SlideNamesTransfer,
+        ResetPresentation
     };
 
     class ApplicationNodeImplementation : public ApplicationNodeBase
@@ -37,7 +38,7 @@ namespace viscom {
         virtual void CleanUp() override;
 
         void LoadTextures(const std::vector<std::string>& textureNames, bool resetSlides = true);
-        void SetCurrentSlide(int slide) { current_slide_ = std::max(slide, static_cast<int>(texture_slides_.size()) - 1); };
+        void SetCurrentSlide(int slide) { current_slide_ = std::min(slide, static_cast<int>(texture_slides_.size()) - 1); };
         int GetCurrentSlide() const { return current_slide_; }
         void NextSlide();
         void PreviousSlide();

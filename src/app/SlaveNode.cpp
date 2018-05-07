@@ -9,12 +9,14 @@
 #include "SlaveNode.h"
 
 #include <imgui.h>
+#include <iostream>
 
 namespace viscom {
 
     SlaveNode::SlaveNode(ApplicationNodeInternal* appNode)
         : SlaveNodeInternal{appNode}
     {
+        sharedIndex_.setVal(-1);
     }
 
     void SlaveNode::InitOpenGL()
@@ -48,8 +50,14 @@ namespace viscom {
     {
         switch (static_cast<SlideMessages>(packageID))
         {
-        case SlideMessages::RequestSlideNames:
-            LoadTextures(DecodeSlideNames(receivedData, receivedLength));
+        case SlideMessages::SlideNamesTransfer:
+            requestSlideNames_ = DecodeSlideNames(receivedData, receivedLength);
+            waitForSlides_ = false;
+            break;
+        case SlideMessages::ResetPresentation:
+            sharedIndex_.setVal(-1);
+            waitForSlides_ = false;
+            LoadTextures(std::vector<std::string>());
             break;
         }
         return true;
@@ -57,7 +65,9 @@ namespace viscom {
 
     void SlaveNode::RequestSlides()
     {
-        GetApplication()->TransferDataToNode(nullptr, 0, static_cast<std::uint16_t>(SlideMessages::RequestSlideNames), 0);
+        int tmp = 0;
+        GetApplication()->TransferDataToNode(&tmp,sizeof(int), static_cast<std::uint16_t>(SlideMessages::RequestSlideNames), 0);
+        waitForSlides_ = true;
     }
 
     inline void CheckSlideNameLength(std::size_t receivedLength, std::size_t sizeToRead) {
@@ -97,8 +107,15 @@ namespace viscom {
     {
         SlaveNodeInternal::UpdateSyncedInfo();
 
+        if (waitForSlides_) return;
+        if (!requestSlideNames_.empty()) {
+            LoadTextures(requestSlideNames_);
+            requestSlideNames_.clear();
+        }
+
 #ifdef VISCOM_USE_SGCT
         int currentSlideFromMaster = sharedIndex_.getVal();
+        std::cout << currentSlideFromMaster << std::endl;
         SetCurrentSlide(currentSlideFromMaster);
 
         if (currentSlideFromMaster != GetCurrentSlide()) RequestSlides();

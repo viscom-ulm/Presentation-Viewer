@@ -74,6 +74,5 @@ namespace viscom {
         std::string inputDir_;
 
         bool inputDirectorySelected_;
-        bool animationChanged_ = false;
     };
 }

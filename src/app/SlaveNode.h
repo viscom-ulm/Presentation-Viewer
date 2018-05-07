@@ -35,5 +35,10 @@ namespace viscom {
         /** Holds the data shared by the master. */
         sgct::SharedInt32 sharedIndex_;
 #endif
+
+        /** The names of slides to be requested. */
+        std::vector<std::string> requestSlideNames_;
+        /** Wait for requested slide names to return from master. */
+        bool waitForSlides_ = false;
     };
 }

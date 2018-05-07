@@ -20,6 +20,7 @@ namespace viscom {
         inputDir_("D:/dev"),
         inputDirectorySelected_(false)
     {
+        sharedIndex_.setVal(-1);
     }
 
     void MasterNode::InitOpenGL()
@@ -34,7 +35,7 @@ namespace viscom {
         std::vector<std::string> supportedDriveLetters = { "A:/", "B:/", "C:/", "D:/", "E:/", "F:/", "G:/", "H:/" };
         namespace fs = std::experimental::filesystem;
         fbo.DrawToFBO([&]() {
-            ImGui::SetNextWindowPos(ImVec2(700, 60), ImGuiSetCond_FirstUseEver);
+            ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiSetCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
             if (!inputDirectorySelected_ && ImGui::Begin("Select input directory", nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_ShowBorders))
             {
@@ -72,7 +73,8 @@ namespace viscom {
         LoadTextures(slides);
 
         NextSlide();
-        animationChanged_ = true;
+        int tmp = 0;
+        GetApplication()->TransferData(&tmp, sizeof(int), static_cast<std::uint16_t>(SlideMessages::ResetPresentation));
     }
 
     bool MasterNode::KeyboardCallback(int key, int scancode, int action, int mods)
@@ -142,6 +144,7 @@ namespace viscom {
     void MasterNode::EncodeData()
     {
         ApplicationNodeImplementation::EncodeData();
+        std::cout << sharedIndex_.getVal() << std::endl;
         sgct::SharedData::instance()->writeInt32(&sharedIndex_);
     }
 
