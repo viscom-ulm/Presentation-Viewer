@@ -144,7 +144,6 @@ namespace viscom {
     void MasterNode::EncodeData()
     {
         ApplicationNodeImplementation::EncodeData();
-        std::cout << sharedIndex_.getVal() << std::endl;
         sgct::SharedData::instance()->writeInt32(&sharedIndex_);
     }
 

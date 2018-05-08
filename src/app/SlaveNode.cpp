@@ -115,7 +115,6 @@ namespace viscom {
 
 #ifdef VISCOM_USE_SGCT
         int currentSlideFromMaster = sharedIndex_.getVal();
-        std::cout << currentSlideFromMaster << std::endl;
         SetCurrentSlide(currentSlideFromMaster);
 
         if (currentSlideFromMaster != GetCurrentSlide()) RequestSlides();
