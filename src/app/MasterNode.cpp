@@ -37,7 +37,8 @@ namespace viscom {
         fbo.DrawToFBO([&]() {
             ImGui::SetNextWindowPos(ImVec2(60, 60), ImGuiSetCond_FirstUseEver);
             ImGui::SetNextWindowSize(ImVec2(550, 680), ImGuiCond_FirstUseEver);
-            if (!inputDirectorySelected_ && ImGui::Begin("Select input directory", nullptr, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_ShowBorders))
+            ImGui::StyleColorsClassic();
+            if (!inputDirectorySelected_ && ImGui::Begin("Select input directory", nullptr, ImGuiWindowFlags_MenuBar))
             {
                 ImGui::Text(inputDir_.data());
                 for (const auto& dl : supportedDriveLetters) {
