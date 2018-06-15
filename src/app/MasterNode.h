@@ -20,11 +20,11 @@ namespace viscom {
     };
     struct ClientState
     {
-        ClientState() : clientId(-1), textureIndex(-1) {}
+        ClientState() {}
         ClientState(int cId) : clientId(cId), textureIndex(-1), numberOfSlides(-1) {}
-        int clientId;
-        int textureIndex;
-        int numberOfSlides;
+        int clientId = -1;
+        int textureIndex = -1;
+        int numberOfSlides = -1;
     };
 
     struct SlideTexDescriptor
@@ -39,7 +39,7 @@ namespace viscom {
 
     struct TextureHeaderMessage
     {
-        TextureHeaderMessage() : index(-1), descriptor(TextureDescriptor{ 0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE }) {}
+        TextureHeaderMessage() noexcept : index(-1), descriptor(TextureDescriptor{ 0, GL_RGB8, GL_RGB, GL_UNSIGNED_BYTE }) {}
         TextureHeaderMessage(std::size_t nos, std::size_t i, SlideTexDescriptor des) : index(i), descriptor(des) { }
         std::size_t index;
         SlideTexDescriptor descriptor;
