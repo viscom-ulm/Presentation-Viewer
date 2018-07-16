@@ -1,52 +1,45 @@
 /**
- * @file   SlaveNode.cpp
+ * @file   WorkerNode.cpp
  * @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
  * @date   2016.11.25
  *
- * @brief  Implementation of the slave application node.
+ * @brief  Implementation of the worker application node.
  */
 
-#include "SlaveNode.h"
-
+#include "WorkerNode.h"
 #include <imgui.h>
-#include <iostream>
+#include <core/open_gl.h>
 
 namespace viscom {
 
-    SlaveNode::SlaveNode(ApplicationNodeInternal* appNode)
-        : SlaveNodeInternal{appNode}
+    WorkerNode::WorkerNode(ApplicationNodeInternal* appNode)
+        : ApplicationNodeImplementation{appNode}
     {
+#ifdef VISCOM_USE_SGCT
         sharedIndex_.setVal(-1);
+#endif
     }
 
-    void SlaveNode::InitOpenGL()
+    void WorkerNode::InitOpenGL()
     {
-        SlaveNodeInternal::InitOpenGL();
+        ApplicationNodeImplementation::InitOpenGL();
 #ifdef VISCOM_USE_SGCT
         LOG(INFO) << "This is client: " << sgct_core::ClusterManager::instance()->getThisNodeId();
 #endif
         LOG(INFO) << "InitOpenGL::glGetError(): " << glGetError();
     }
 
-    void SlaveNode::Draw2D(FrameBuffer& fbo)
-    {
-        if constexpr (SHOW_CLIENT_GUI) ImGui::ShowTestWindow();
+    WorkerNode::~WorkerNode() = default;
 
-        // always do this call last!
-        SlaveNodeInternal::Draw2D(fbo);
-    }
-
-    SlaveNode::~SlaveNode() = default;
-
-    void SlaveNode::DecodeData()
+    void WorkerNode::DecodeData()
     {
 #ifdef VISCOM_USE_SGCT
-        SlaveNodeInternal::DecodeData();
+        ApplicationNodeImplementation::DecodeData();
         sgct::SharedData::instance()->readInt32(&sharedIndex_);
 #endif
     }
 
-    bool SlaveNode::DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID)
+    bool WorkerNode::DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID)
     {
         switch (static_cast<SlideMessages>(packageID))
         {
@@ -55,7 +48,9 @@ namespace viscom {
             waitForSlides_ = false;
             break;
         case SlideMessages::ResetPresentation:
+#ifdef VISCOM_USE_SGCT
             sharedIndex_.setVal(-1);
+#endif
             waitForSlides_ = false;
             LoadTextures(std::vector<std::string>());
             break;
@@ -63,10 +58,10 @@ namespace viscom {
         return true;
     }
 
-    void SlaveNode::RequestSlides()
+    void WorkerNode::RequestSlides()
     {
         int tmp = 0;
-        GetApplication()->TransferDataToNode(&tmp,sizeof(int), static_cast<std::uint16_t>(SlideMessages::RequestSlideNames), 0);
+        TransferDataToNode(&tmp,sizeof(int), static_cast<std::uint16_t>(SlideMessages::RequestSlideNames), 0);
         waitForSlides_ = true;
     }
 
@@ -76,7 +71,7 @@ namespace viscom {
             throw std::runtime_error("Encoded slide names are corrupt.");
         }
     }
-    std::vector<std::string> SlaveNode::DecodeSlideNames(const void* receivedData, int receivedLength)
+    std::vector<std::string> WorkerNode::DecodeSlideNames(const void* receivedData, int receivedLength)
     {
         std::size_t restLength = receivedLength;
         CheckSlideNameLength(restLength, sizeof(std::size_t));
@@ -103,9 +98,9 @@ namespace viscom {
         return slideNames;
     }
 
-    void SlaveNode::UpdateSyncedInfo()
+    void WorkerNode::UpdateSyncedInfo()
     {
-        SlaveNodeInternal::UpdateSyncedInfo();
+        ApplicationNodeImplementation::UpdateSyncedInfo();
 
         if (waitForSlides_) return;
         if (!requestSlideNames_.empty()) {

@@ -1,15 +1,14 @@
 /**
-* @file   ApplicationNodeImplementation.h
-* @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
-* @date   2016.11.30
-*
-* @brief  Declaration of the application node implementation common for master and slave nodes.
-*/
+ * @file   ApplicationNodeImplementation.h
+ * @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
+ * @date   2016.11.30
+ *
+ * @brief  Declaration of the application node implementation common for coordinator and worker nodes.
+ */
 
 #pragma once
 
-#include "core/ApplicationNodeBase.h"
-#include "core/ApplicationNodeInternal.h"
+#include "core/app/ApplicationNodeBase.h"
 
 namespace viscom {
 
@@ -55,6 +54,6 @@ namespace viscom {
         /** The vector holds all available slide textures */
         std::vector<std::shared_ptr<viscom::Texture>> texture_slides_;
         /** Holds the geometry which gets textured with a slide*/
-        std::shared_ptr<FullscreenQuad> quad_;
+        std::unique_ptr<FullscreenQuad> quad_;
     };
 }

@@ -1,14 +1,13 @@
 /**
-* @file   ApplicationNodeImplementation.cpp
-* @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
-* @date   2016.11.30
-*
-* @brief  Implementation of the application node class.
-*/
+ * @file   ApplicationNodeImplementation.cpp
+ * @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
+ * @date   2016.11.30
+ *
+ * @brief  Implementation of the application node class.
+ */
 
 #include "ApplicationNodeImplementation.h"
 #include "core/gfx/mesh/MeshRenderable.h"
-#include "core/imgui/imgui_impl_glfw_gl3.h"
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -28,7 +27,7 @@ namespace viscom {
 
     void ApplicationNodeImplementation::InitOpenGL()
     {
-        quad_ = std::make_shared<FullscreenQuad>("slide.frag", GetApplication());
+        quad_ = CreateFullscreenQuad("slide.frag");
         slideProgram_ = quad_->GetGPUProgram();
         slideTextureLoc_ = slideProgram_->getUniformLocation("slide");
     }
@@ -50,9 +49,9 @@ namespace viscom {
 
         fbo.DrawToFBO([this]() {
 #ifdef VISCOM_USE_SGCT
-            auto windowId = GetApplication()->GetEngine()->getCurrentWindowPtr()->getId();
-            auto viewportPosition = -GetApplication()->GetViewportScreen(windowId).position_;
-            auto viewportSize = GetApplication()->GetViewportScreen(windowId).size_;
+            auto windowId = GetCurrentWindowID();
+            auto viewportPosition = -GetViewportScreen(windowId).position_;
+            auto viewportSize = GetViewportScreen(windowId).size_;
             glViewport(viewportPosition.x, viewportPosition.y, viewportSize.x, viewportSize.y);
 #endif
             glUseProgram(slideProgram_->getProgramId());
@@ -80,7 +79,7 @@ namespace viscom {
         if (resetSlides) current_slide_ = -1;
         texture_slides_.clear();
 
-        for (const auto& texName : textureNames) texture_slides_.emplace_back(GetApplication()->GetTextureManager().GetSynchronizedResource(texName));
+        for (const auto& texName : textureNames) texture_slides_.emplace_back(GetTextureManager().GetSynchronizedResource(texName));
     }
 
     void ApplicationNodeImplementation::NextSlide()

@@ -1,12 +1,12 @@
 /**
-* @file   MasterNode.cpp
-* @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
-* @date   2016.11.25
-*
-* @brief  Implementation of the master application node.
-*/
+ * @file   CoordinatorNode.cpp
+ * @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
+ * @date   2016.11.25
+ *
+ * @brief  Implementation of the coordinator application node.
+ */
 
-#include "MasterNode.h"
+#include "CoordinatorNode.h"
 #include "Filesystem.h"
 #include <imgui.h>
 #include <iostream>
@@ -15,22 +15,24 @@
 
 namespace viscom {
 
-    MasterNode::MasterNode(ApplicationNodeInternal* appNode) :
+    CoordinatorNode::CoordinatorNode(ApplicationNodeInternal* appNode) :
         ApplicationNodeImplementation{appNode},
         inputDir_("D:/dev"),
         inputDirectorySelected_(false)
     {
+#ifdef VISCOM_USE_SGCT
         sharedIndex_.setVal(-1);
+#endif
     }
 
-    void MasterNode::InitOpenGL()
+    void CoordinatorNode::InitOpenGL()
     {
         ApplicationNodeImplementation::InitOpenGL();
     }
 
-    MasterNode::~MasterNode() = default;
+    CoordinatorNode::~CoordinatorNode() = default;
 
-    void MasterNode::Draw2D(FrameBuffer& fbo)
+    void CoordinatorNode::Draw2D(FrameBuffer& fbo)
     {
         std::vector<std::string> supportedDriveLetters = { "A:/", "B:/", "C:/", "D:/", "E:/", "F:/", "G:/", "H:/" };
         namespace fs = std::experimental::filesystem;
@@ -67,7 +69,7 @@ namespace viscom {
         ApplicationNodeImplementation::Draw2D(fbo);
     }
 
-    void MasterNode::loadSlides() {
+    void CoordinatorNode::loadSlides() {
         std::vector<std::string> slides = getFiles(inputDir_);
         std::sort(slides.begin(), slides.end(), viscom::comparePaths);
 
@@ -75,10 +77,10 @@ namespace viscom {
 
         NextSlide();
         int tmp = 0;
-        GetApplication()->TransferData(&tmp, sizeof(int), static_cast<std::uint16_t>(SlideMessages::ResetPresentation));
+        TransferData(&tmp, sizeof(int), static_cast<std::uint16_t>(SlideMessages::ResetPresentation));
     }
 
-    bool MasterNode::KeyboardCallback(int key, int scancode, int action, int mods)
+    bool CoordinatorNode::KeyboardCallback(int key, int scancode, int action, int mods)
     {
         if (ApplicationNodeBase::KeyboardCallback(key, scancode, action, mods)) return true;
 
@@ -109,7 +111,7 @@ namespace viscom {
         return false;
     }
 
-    std::vector<std::string> MasterNode::getDirectoryContent(const std::string& dir, const bool returnFiles) const
+    std::vector<std::string> CoordinatorNode::getDirectoryContent(const std::string& dir, const bool returnFiles) const
     {
         namespace fs = std::experimental::filesystem;
 
@@ -126,14 +128,14 @@ namespace viscom {
         return content;
     }
 #ifdef VISCOM_USE_SGCT
-    bool MasterNode::DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID)
+    bool CoordinatorNode::DataTransferCallback(void* receivedData, int receivedLength, std::uint16_t packageID, int clientID)
     {
         switch (static_cast<SlideMessages>(packageID))
         {
         case SlideMessages::RequestSlideNames:
         {
             auto slideNames = GetTextureSlideNameData();
-            GetApplication()->TransferDataToNode(slideNames.data(), slideNames.size(), static_cast<std::uint16_t>(SlideMessages::SlideNamesTransfer), clientID);
+            TransferDataToNode(slideNames.data(), slideNames.size(), static_cast<std::uint16_t>(SlideMessages::SlideNamesTransfer), clientID);
             break;
         }
         default : break;
@@ -142,20 +144,20 @@ namespace viscom {
         return true;
     }
 
-    void MasterNode::EncodeData()
+    void CoordinatorNode::EncodeData()
     {
         ApplicationNodeImplementation::EncodeData();
         sgct::SharedData::instance()->writeInt32(&sharedIndex_);
     }
 
-    void MasterNode::PreSync()
+    void CoordinatorNode::PreSync()
     {
         ApplicationNodeImplementation::PreSync();
         sharedIndex_.setVal(GetCurrentSlide());
     }
 #endif
 
-    void MasterNode::UpdateFrame(double currentTime, double elapsedTime)
+    void CoordinatorNode::UpdateFrame(double currentTime, double elapsedTime)
     {
         ApplicationNodeImplementation::UpdateFrame(currentTime, elapsedTime);
     }

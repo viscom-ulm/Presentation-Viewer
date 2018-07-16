@@ -1,27 +1,23 @@
 /**
- * @file   SlaveNode.h
+ * @file   WorkerNode.h
  * @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
  * @date   2016.11.25
  *
- * @brief  Declaration of the ApplicationNodeImplementation for the slave node.
+ * @brief  Declaration of the ApplicationNodeImplementation for the worker node.
  */
 
 #pragma once
 
-#include "MasterNode.h"
-#include "core/SlaveNodeHelper.h"
-#include <mutex>
+#include "app/ApplicationNodeImplementation.h"
 
 namespace viscom {
 
-    class SlaveNode final : public SlaveNodeInternal
+    class WorkerNode final : public ApplicationNodeImplementation
     {
     public:
-        explicit SlaveNode(ApplicationNodeInternal* appNode);
-        virtual ~SlaveNode() override;
+        explicit WorkerNode(ApplicationNodeInternal* appNode);
+        virtual ~WorkerNode() override;
         virtual void InitOpenGL() override;
-        void Draw2D(FrameBuffer& fbo) override;
-        
 
         void RequestSlides();
         std::vector<std::string> DecodeSlideNames(const void* receivedData, int receivedLength);
