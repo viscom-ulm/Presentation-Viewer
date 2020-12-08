@@ -1,16 +1,15 @@
 /**
-* @file   MasterNode.h
-* @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
-* @date   2016.11.25
-*
-* @brief  Declaration of the ApplicationNodeImplementation for the master node.
-*/
+ * @file   CoordinatorNode.h
+ * @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
+ * @date   2016.11.25
+ *
+ * @brief  Declaration of the ApplicationNodeImplementation for the coordinator node.
+ */
 
 #pragma once
 
-#include "../app/ApplicationNodeImplementation.h"
-
 #include "core/open_gl.h"
+#include "app/ApplicationNodeImplementation.h"
 
 namespace viscom {
 
@@ -45,18 +44,18 @@ namespace viscom {
         SlideTexDescriptor descriptor;
     };
 
-    class MasterNode final : public ApplicationNodeImplementation
+    class CoordinatorNode final : public ApplicationNodeImplementation
     {
     public:
-        explicit MasterNode(ApplicationNodeInternal* appNode);
-        virtual ~MasterNode() override;
-        virtual void InitOpenGL() override;
-        virtual void UpdateFrame(double currentTime, double elapsedTime) override;
-        virtual void Draw2D(FrameBuffer& fbo) override;
+        explicit CoordinatorNode(ApplicationNodeInternal* appNode);
+        virtual ~CoordinatorNode() override;
+
+        void Draw2D(FrameBuffer& fbo) override;
+
         virtual bool KeyboardCallback(int key, int scancode, int action, int mods) override;
         std::vector<std::string> getDirectoryContent(const std::string &dir, bool returnFiles = false) const;
         std::vector<std::string> getFiles(const std::string &dir) { return getDirectoryContent(dir, true); }
-        
+
 
         /** iterates over resource/slides folder and loads textures */
         void loadSlides();

@@ -6,32 +6,29 @@
 * @brief  Implementation of the application node class.
 */
 
+#include "core/open_gl.h"
 #include "ApplicationNodeImplementation.h"
 #include "core/gfx/mesh/MeshRenderable.h"
-#include "core/imgui/imgui_impl_glfw_gl3.h"
 #include <glm/gtc/matrix_inverse.hpp>
+#include "core/gfx/mesh/AnimMeshRenderable.h"
+#include <iostream>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <iostream>
-#include "core/open_gl.h"
 
 namespace viscom {
 
     ApplicationNodeImplementation::ApplicationNodeImplementation(ApplicationNodeInternal* appNode) :
         ApplicationNodeBase{appNode}, slideProgram_(nullptr), slideTextureLoc_(0)
     {
-    }
-
-    ApplicationNodeImplementation::~ApplicationNodeImplementation() = default;
-
-    void ApplicationNodeImplementation::InitOpenGL()
-    {
-        quad_ = std::make_shared<FullscreenQuad>("slide.frag", GetApplication());
+        quad_ = std::make_shared<FullscreenQuad>("slide.frag", this);
         slideProgram_ = quad_->GetGPUProgram();
         slideTextureLoc_ = slideProgram_->getUniformLocation("slide");
     }
+
+    ApplicationNodeImplementation::~ApplicationNodeImplementation() = default;
 
     void ApplicationNodeImplementation::UpdateFrame(double currentTime, double)
     {
@@ -50,9 +47,9 @@ namespace viscom {
 
         fbo.DrawToFBO([this]() {
 #ifdef VISCOM_USE_SGCT
-            auto windowId = GetApplication()->GetEngine()->getCurrentWindowPtr()->getId();
-            auto viewportPosition = -GetApplication()->GetViewportScreen(windowId).position_;
-            auto viewportSize = GetApplication()->GetViewportScreen(windowId).size_;
+            auto windowId = GetApplication()->GetFramework().GetEngine()->getCurrentWindowPtr()->getId();
+            auto viewportPosition = -GetApplication()->GetFramework().GetViewportScreen(windowId).position_;
+            auto viewportSize = GetApplication()->GetFramework().GetViewportScreen(windowId).size_;
             glViewport(viewportPosition.x, viewportPosition.y, viewportSize.x, viewportSize.y);
 #endif
             glUseProgram(slideProgram_->getProgramId());
@@ -70,17 +67,12 @@ namespace viscom {
 
     }
 
-    void ApplicationNodeImplementation::CleanUp()
-    {
-
-    }
-
     void ApplicationNodeImplementation::LoadTextures(const std::vector<std::string>& textureNames, bool resetSlides)
     {
         if (resetSlides) current_slide_ = -1;
         texture_slides_.clear();
 
-        for (const auto& texName : textureNames) texture_slides_.emplace_back(GetApplication()->GetTextureManager().GetSynchronizedResource(texName));
+        for (const auto& texName : textureNames) texture_slides_.emplace_back(GetTextureManager().GetSynchronizedResource(texName));
     }
 
     void ApplicationNodeImplementation::NextSlide()

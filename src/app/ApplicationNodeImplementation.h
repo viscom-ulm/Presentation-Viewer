@@ -1,15 +1,14 @@
 /**
-* @file   ApplicationNodeImplementation.h
-* @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
-* @date   2016.11.30
-*
-* @brief  Declaration of the application node implementation common for master and slave nodes.
-*/
+ * @file   ApplicationNodeImplementation.h
+ * @author Sebastian Maisch <sebastian.maisch@uni-ulm.de>
+ * @date   2016.11.30
+ *
+ * @brief  Declaration of the application node implementation common for coordinator and worker nodes.
+ */
 
 #pragma once
 
-#include "core/ApplicationNodeBase.h"
-#include "core/ApplicationNodeInternal.h"
+#include "core/app/ApplicationNodeBase.h"
 
 namespace viscom {
 
@@ -31,11 +30,9 @@ namespace viscom {
         ApplicationNodeImplementation& operator=(ApplicationNodeImplementation&&) = delete;
         virtual ~ApplicationNodeImplementation() override;
 
-        virtual void InitOpenGL() override;
         virtual void UpdateFrame(double currentTime, double elapsedTime) override;
         virtual void ClearBuffer(FrameBuffer& fbo) override;
         virtual void DrawFrame(FrameBuffer& fbo) override;
-        virtual void CleanUp() override;
 
         void LoadTextures(const std::vector<std::string>& textureNames, bool resetSlides = true);
         void SetCurrentSlide(int slide) { current_slide_ = std::min(slide, static_cast<int>(texture_slides_.size()) - 1); };
